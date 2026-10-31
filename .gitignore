@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+docs/.capture-profile/
+docs/.smoke-profile/
+.scratch/
+.tools/
+docs/assets/
+docs/appstore.json
+*.log
+*.tsbuildinfo
+build-out*/
+Thumbs.db
+.DS_Store

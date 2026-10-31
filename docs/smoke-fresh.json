@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "ranAt": "2026-10-31T08:57:44.212Z",
+  "results": [
+    {
+      "name": "fresh.onboarding-auto-open",
+      "ok": true,
+      "detail": "visible=true"
+    },
+    {
+      "name": "fresh.onboarding-render",
+      "ok": true,
+      "detail": "{\"app\":\"onboarding\",\"bootError\":null,\"textLength\":202,\"hasNext\":true,\"step\":\"第 1 步\"}"
+    },
+    {
+      "name": "fresh.onboarding-onscreen",
+      "ok": true
+    },
+    {
+      "name": "fresh.default-settings",
+      "ok": true,
+      "detail": "onboarding=false shortcut=Ctrl+Alt+I"
+    },
+    {
+      "name": "fresh.panel-hidden",
+      "ok": true
+    },
+    {
+      "name": "fresh.tray-ready",
+      "ok": true,
+      "detail": "{\"ready\":true,\"tooltip\":\"InsomniaZ — 就绪 · 无限期\",\"labels\":[\"InsomniaZ — 就绪\",\"开启 InsomniaZ\",\"时长\",\"15分钟\",\"30分钟\",\"1小时\",\"2小时\",\"4小时\",\"8小时\",\"无限期\",\"显示\",\"常亮 — 屏幕保持点亮\",\"自动 — 屏幕可休眠\",\"合盖后保持运行\",\"防止应用判定你离开\",\"打开控制面板\",\"设置…\",\"关于 InsomniaZ\",\"全局快捷键: Ctrl+Alt+I\",\"运行兼容性检查\",\"退出 InsomniaZ\"]}"
+    },
+    {
+      "name": "fresh.shortcut-registered",
+      "ok": true,
+      "detail": "{\"accelerator\":\"Ctrl+Alt+I\",\"registered\":true}"
+    },
+    {
+      "name": "fresh.helper-connected",
+      "ok": true,
+      "detail": "{\"helperConnected\":true,\"elevated\":false,\"lidPolicySupported\":true,\"lidActive\":false,\"lidError\":null,\"recoveryPending\":false,\"helperVersion\":\"1.0.0\"}"
+    }
+  ]
+}

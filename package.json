@@ -1,0 +1,104 @@
+{
+  "name": "insomniaz-windows",
+  "productName": "InsomniaZ",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InsomniaZ for Windows — keep your PC awake, even with the lid closed.",
+  "author": "Independent Windows port",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/main/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build:main": "node scripts/build-main.mjs",
+    "build:renderer": "vite build",
+    "build": "npm run typecheck && npm run build:main && npm run build:renderer && npm run build:helper",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "build:helper": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-helper.ps1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "npm run build && electron .",
+    "capture": "npm run build && electron . --capture",
+    "dist": "npm run build && electron-builder --win nsis portable --x64",
+    "pack": "npm run build && electron-builder --win --dir --x64"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "electron": "38.8.6",
+    "electron-builder": "26.0.12",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.insomniaz.windows",
+    "productName": "InsomniaZ",
+    "asar": true,
+    "npmRebuild": false,
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/helper/InsomniaZHelper.exe",
+        "to": "helper/InsomniaZHelper.exe"
+      },
+      {
+        "from": "resources/helper/README.txt",
+        "to": "helper/README.txt"
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "resources/tray-active.png",
+        "to": "tray-active.png"
+      },
+      {
+        "from": "resources/tray-idle.png",
+        "to": "tray-idle.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "artifactName": "InsomniaZ-Windows-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "InsomniaZ",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "InsomniaZ-Windows-${version}-portable.${ext}"
+    }
+  }
+}

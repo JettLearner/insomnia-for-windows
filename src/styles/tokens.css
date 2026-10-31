@@ -1,0 +1,84 @@
+:root {
+  color-scheme: dark;
+
+  --font-ui: 'Segoe UI Variable Display', 'Segoe UI Variable Text', 'Segoe UI', system-ui,
+    -apple-system, 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+  --font-mono: 'Cascadia Mono', 'Consolas', monospace;
+
+  --bg: #14141c;
+  --surface: #191924;
+  --surface-2: #20202b;
+  --surface-3: #242431;
+  --surface-raised: #262633;
+  --surface-input: #1c1c26;
+
+  --text: #f4f2fa;
+  --text-2: #a6a3b2;
+  --text-3: #777384;
+  --text-inverse: #14141c;
+
+  --accent: #8e63ec;
+  --accent-bright: #a381ea;
+  --accent-soft: rgba(142, 99, 236, 0.16);
+  --accent-softer: rgba(142, 99, 236, 0.08);
+  --selected: #2e254a;
+  --selected-border: rgba(163, 129, 234, 0.42);
+
+  --gold: #f6b62e;
+  --gold-soft: rgba(246, 182, 46, 0.13);
+
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 14px 40px rgba(0, 0, 0, 0.32);
+
+  --success: #6dd3a7;
+  --danger: #ff7a8a;
+  --warning: #f6b62e;
+
+  --panel-radius: 24px;
+  --card-radius: 16px;
+
+  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eeeaf6;
+  --surface: #f8f6fc;
+  --surface-2: #ffffff;
+  --surface-3: #f1edf9;
+  --surface-raised: #ffffff;
+  --surface-input: #f3effa;
+
+  --text: #211d2c;
+  --text-2: #6c6679;
+  --text-3: #918b9e;
+  --text-inverse: #ffffff;
+
+  --accent: #7a4fe0;
+  --accent-bright: #6b3fd4;
+  --accent-soft: rgba(122, 79, 224, 0.12);
+  --accent-softer: rgba(122, 79, 224, 0.06);
+  --selected: #ece4ff;
+  --selected-border: rgba(122, 79, 224, 0.36);
+
+  --gold: #b77e00;
+  --gold-soft: rgba(183, 126, 0, 0.1);
+
+  --line: rgba(33, 29, 44, 0.08);
+  --line-strong: rgba(33, 29, 44, 0.14);
+  --shadow: 0 30px 80px rgba(49, 35, 95, 0.22), 0 8px 24px rgba(49, 35, 95, 0.12);
+  --shadow-soft: 0 14px 40px rgba(49, 35, 95, 0.12);
+
+  --success: #1f9c6c;
+  --danger: #cf3d50;
+  --warning: #a86f00;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0;
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "ok": true,
+  "ranAt": "2026-10-31T08:57:41.760Z",
+  "results": [
+    {
+      "name": "panel.render",
+      "ok": true,
+      "detail": "{\"app\":\"panel\",\"bootError\":null,\"textLength\":406}"
+    },
+    {
+      "name": "panel.bounds",
+      "ok": true,
+      "detail": "416x724"
+    },
+    {
+      "name": "panel.skip-taskbar",
+      "ok": true,
+      "detail": "exStyle=524424"
+    },
+    {
+      "name": "panel.placement",
+      "ok": true,
+      "detail": "{\"bounds\":{\"x\":856,\"y\":28,\"width\":416,\"height\":724},\"workArea\":{\"x\":0,\"y\":0,\"width\":1280,\"height\":760}}"
+    },
+    {
+      "name": "panel.toggle-on",
+      "ok": true,
+      "detail": "active=true"
+    },
+    {
+      "name": "panel.ring-reflects-state",
+      "ok": true,
+      "detail": "aria-checked=true"
+    },
+    {
+      "name": "panel.duration-1h",
+      "ok": true,
+      "detail": "durationMs=3600000"
+    },
+    {
+      "name": "panel.duration-presets",
+      "ok": true,
+      "detail": "[{\"pill\":\"15m\",\"durationMs\":900000},{\"pill\":\"30m\",\"durationMs\":1800000},{\"pill\":\"1h\",\"durationMs\":3600000},{\"pill\":\"2h\",\"durationMs\":7200000},{\"pill\":\"4h\",\"durationMs\":14400000},{\"pill\":\"8h\",\"durationMs\":28800000},{\"pill\":\"∞\",\"durationMs\":null}]"
+    },
+    {
+      "name": "panel.display-on",
+      "ok": true,
+      "detail": "display=on"
+    },
+    {
+      "name": "panel.ring-toggle-off",
+      "ok": true
+    },
+    {
+      "name": "session.auto-expire",
+      "ok": true,
+      "detail": "ok=true before=true after=false"
+    },
+    {
+      "name": "panel.long-press-settings",
+      "ok": true
+    },
+    {
+      "name": "settings.render",
+      "ok": true,
+      "detail": "{\"app\":\"settings\",\"bootError\":null,\"textLength\":979}"
+    },
+    {
+      "name": "settings.nav-count",
+      "ok": true,
+      "detail": "nav=7"
+    },
+    {
+      "name": "settings.section-0",
+      "ok": true,
+      "detail": "General"
+    },
+    {
+      "name": "settings.section-1",
+      "ok": true,
+      "detail": "Shortcuts"
+    },
+    {
+      "name": "settings.section-2",
+      "ok": true,
+      "detail": "Power"
+    },
+    {
+      "name": "settings.section-3",
+      "ok": true,
+      "detail": "Battery"
+    },
+    {
+      "name": "settings.section-4",
+      "ok": true,
+      "detail": "Appearance"
+    },
+    {
+      "name": "settings.section-5",
+      "ok": true,
+      "detail": "Privacy"
+    },
+    {
+      "name": "settings.section-6",
+      "ok": true,
+      "detail": "About InsomniaZ"
+    },
+    {
+      "name": "settings.toggles-dark",
+      "ok": true,
+      "detail": "{\"theme\":\"dark\",\"checked\":[{\"state\":\"true\",\"bg\":\"rgb(142, 99, 236)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"},{\"state\":\"true\",\"bg\":\"rgb(142, 99, 236)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"},{\"state\":\"true\",\"bg\":\"rgb(142, 99, 236)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"}],\"unchecked\":[{\"state\":\"false\",\"bg\":\"rgb(43, 43, 55)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(43, 43, 55)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(43, 43, 55)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(43, 43, 55)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(43, 43, 55)\",\"knob\":\"none\"}]}"
+    },
+    {
+      "name": "settings.toggles-light",
+      "ok": true,
+      "detail": "{\"theme\":\"light\",\"checked\":[{\"state\":\"true\",\"bg\":\"rgb(122, 79, 224)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"},{\"state\":\"true\",\"bg\":\"rgb(122, 79, 224)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"},{\"state\":\"true\",\"bg\":\"rgb(122, 79, 224)\",\"knob\":\"matrix(1, 0, 0, 1, 17, 0)\"}],\"unchecked\":[{\"state\":\"false\",\"bg\":\"rgb(218, 213, 229)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(218, 213, 229)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(218, 213, 229)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(218, 213, 229)\",\"knob\":\"none\"},{\"state\":\"false\",\"bg\":\"rgb(218, 213, 229)\",\"knob\":\"none\"}]}"
+    },
+    {
+      "name": "settings.theme-ui-light",
+      "ok": true,
+      "detail": "light"
+    },
+    {
+      "name": "settings.theme-ui-system",
+      "ok": true,
+      "detail": "light"
+    },
+    {
+      "name": "settings.density-compact",
+      "ok": true,
+      "detail": "compact"
+    },
+    {
+      "name": "settings.language-zh",
+      "ok": true,
+      "detail": "通用"
+    },
+    {
+      "name": "settings.close-hides",
+      "ok": true,
+      "detail": "destroyed=false visible=false"
+    },
+    {
+      "name": "onboarding.render",
+      "ok": true,
+      "detail": "{\"app\":\"onboarding\",\"bootError\":null,\"textLength\":512}"
+    },
+    {
+      "name": "onboarding.step1",
+      "ok": true,
+      "detail": "STEP 1 OF 3"
+    },
+    {
+      "name": "onboarding.step2",
+      "ok": true,
+      "detail": "STEP 2 OF 3"
+    },
+    {
+      "name": "onboarding.step3",
+      "ok": true,
+      "detail": "STEP 3 OF 3"
+    },
+    {
+      "name": "onboarding.finish",
+      "ok": true,
+      "detail": "visible=false complete=true"
+    },
+    {
+      "name": "onboarding.panel-after",
+      "ok": true
+    },
+    {
+      "name": "tray.menu",
+      "ok": true,
+      "detail": "labels=21 missing=none"
+    },
+    {
+      "name": "tray.tooltip",
+      "ok": true,
+      "detail": "InsomniaZ — READY · indefinite"
+    },
+    {
+      "name": "shortcut.registered",
+      "ok": true,
+      "detail": "{\"accelerator\":\"Ctrl+Alt+I\",\"registered\":true}"
+    }
+  ]
+}
