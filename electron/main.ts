@@ -1,8 +1,9 @@
-import { app, Menu, dialog, screen } from 'electron';
+import { app, Menu, dialog, Notification, powerMonitor, screen } from 'electron';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { AutopilotService } from './core/autopilot-service';
 import { Controller } from './core/controller';
 import { WindowManager } from './core/windows';
 import { TrayController } from './core/tray';
@@ -36,6 +37,7 @@ let windows: WindowManager | null = null;
 let tray: TrayController | null = null;
 let shortcuts: ShortcutManager | null = null;
 let logger: Logger | null = null;
+let autopilot: AutopilotService | null = null;
 let quitting = false;
 
 function resourcePath(...parts: string[]): string {
@@ -99,6 +101,28 @@ async function bootstrap(): Promise<void> {
     logger,
   });
 
+  const autoHelperExe = resourcePath('helper', 'InsomniaZAuto.exe');
+  if (!existsSync(autoHelperExe)) {
+    logger.warn('automation helper missing; scheduled deliveries will fail', { autoHelperExe });
+  }
+  autopilot = new AutopilotService({
+    userDataDir,
+    log: logger,
+    autoHelperExe,
+    tempDir: () => join(userDataDir, 'autopilot-tmp'),
+    softStopActive: () => {
+      const phase = controller?.getState().softStop.phase ?? 'off';
+      return phase === 'detected' || phase === 'sending' || phase === 'sent' || phase === 'sleeping';
+    },
+    onGuardBusy: () => windows?.hideAutopilot(),
+    notify: (title, body) => {
+      if (Notification.isSupported()) {
+        new Notification({ title: 'InsomniaZ 定时投递', body: `${title} · ${body}`, silent: true }).show();
+      }
+    },
+  });
+  autopilot.onChange((snapshot) => windows?.broadcastAutopilot(snapshot));
+
   tray = new TrayController({
     controller,
     windows,
@@ -117,6 +141,7 @@ async function bootstrap(): Promise<void> {
   registerIpc({
     controller,
     windows,
+    autopilot,
     requestQuit,
     userDataDir,
     logger,
@@ -135,6 +160,13 @@ async function bootstrap(): Promise<void> {
 
   tray.create();
   tray.update(controller.getState());
+
+  // UI acceptance runs must never trigger real deliveries on a live desktop.
+  if (!captureMode && !smokeMode && !freshMode) {
+    autopilot.start();
+    powerMonitor.on('suspend', () => autopilot?.flush());
+    powerMonitor.on('shutdown', () => autopilot?.flush());
+  }
 
   if (!settings.onboardingComplete) {
     windows.showOnboarding();
@@ -204,11 +236,45 @@ async function runCapture(): Promise<void> {
   windows.openSettings('general');
   await capture('settings-general-en', 'settings');
 
-  for (const section of ['shortcuts', 'power', 'battery', 'appearance', 'privacy', 'about']) {
+  for (const section of ['shortcuts', 'power', 'battery', 'softstop', 'appearance', 'privacy', 'about']) {
     windows.openSettings(section);
     await wait(350);
     await capture(`settings-${section}-en`, 'settings');
   }
+
+  // The soft stop page is taller than one window; document its lower cards too.
+  windows.openSettings('softstop');
+  for (const [name, title] of [
+    ['settings-softstop-target-en', 'Delivery target'],
+    ['settings-softstop-teaching-en', 'Teaching mode'],
+  ] as const) {
+    await windows.getWindow('settings')?.webContents.executeJavaScript(`(() => {
+      const main = document.querySelector('.settings-main');
+      if (!main) return false;
+      const card = [...main.querySelectorAll('.card')].find(
+        (el) => el.querySelector('.card-head')?.textContent?.trim() === ${JSON.stringify(title)},
+      );
+      if (!card) return false;
+      main.scrollTop += card.getBoundingClientRect().top - main.getBoundingClientRect().top - 18;
+      return true;
+    })()`);
+    await wait(320);
+    await capture(name, 'settings');
+  }
+
+  // The autopilot window is a separate native-shell window; capture its two
+  // primary states without persisting anything.
+  windows.showAutopilot();
+  await wait(900);
+  await capture('autopilot-jobs-en', 'autopilot', 0);
+  await windows.getWindow('autopilot')?.webContents.executeJavaScript(`(() => {
+    const button = [...document.querySelectorAll('.ap-btn')].find((el) => el.textContent === 'New task');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  await wait(450);
+  await capture('autopilot-editor-en', 'autopilot', 0);
 
   await controller.updateSettings({ theme: 'light' });
   windows.openSettings('general');
@@ -514,9 +580,18 @@ async function runSmoke(): Promise<void> {
       JSON.stringify(settingsProbe),
     );
     const navCount = await evalIn<number>(settingsWin, `document.querySelectorAll('.nav-item').length`);
-    record('settings.nav-count', navCount === 7, `nav=${navCount}`);
+    record('settings.nav-count', navCount === 8, `nav=${navCount}`);
 
-    const headingByIndex = ['General', 'Shortcuts', 'Power', 'Battery', 'Appearance', 'Privacy', 'About InsomniaZ'];
+    const headingByIndex = [
+      'General',
+      'Shortcuts',
+      'Power',
+      'Battery',
+      'Soft Stop',
+      'Appearance',
+      'Privacy',
+      'About InsomniaZ',
+    ];
     for (let index = 0; index < headingByIndex.length; index += 1) {
       await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[${index}].click()`);
       await wait(320);
@@ -526,6 +601,82 @@ async function runSmoke(): Promise<void> {
       );
       record(`settings.section-${index}`, heading === headingByIndex[index], heading);
     }
+
+    // --- Soft stop ---------------------------------------------------------
+    await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[4].click()`);
+    await wait(400);
+    type SoftProbe = { phase: string; prompt: number; sliders: number[]; cards: string[] };
+    const softProbe = await evalIn<SoftProbe>(
+      settingsWin,
+      `(() => {
+        const main = document.querySelector('.settings-main');
+        return {
+          phase: (main?.querySelector('.softstop-phase')?.textContent || '').trim(),
+          prompt: (main?.querySelector('.softstop-textarea')?.value || '').length,
+          sliders: [...(main?.querySelectorAll('input[type=range]') || [])].map((el) => Number(el.value)),
+          cards: [...(main?.querySelectorAll('.card') || [])].map((el) => (el.querySelector('.card-head')?.textContent || '').trim()),
+        };
+      })()`,
+    );
+    const softSettings = controller.getSettings();
+    record(
+      'softstop.render',
+      softProbe.phase === 'Off' && softProbe.prompt >= 20 && softProbe.cards.length === 5,
+      JSON.stringify(softProbe),
+    );
+    record(
+      'softstop.thresholds',
+      softProbe.sliders.length === 2 &&
+        softProbe.sliders[0] === softSettings.softStopThreshold &&
+        softProbe.sliders[1] === softSettings.softStopSleepThreshold,
+      JSON.stringify(softProbe.sliders),
+    );
+
+    if (softSettings.softStopEnabled) {
+      await evalIn(settingsWin, `document.querySelector('.settings-main .toggle').click()`);
+      await wait(600);
+    }
+    await evalIn(settingsWin, `document.querySelector('.settings-main .toggle').click()`);
+    await wait(800);
+    record(
+      'softstop.enable-ui',
+      controller.getSettings().softStopEnabled === true &&
+        controller.getState().softStop.phase === 'idle',
+      `enabled=${controller.getSettings().softStopEnabled} phase=${controller.getState().softStop.phase}`,
+    );
+    const phaseChip = await evalIn<string>(
+      settingsWin,
+      `(document.querySelector('.softstop-phase')?.textContent || '').trim()`,
+    );
+    record('softstop.phase-chip', phaseChip === 'Idle', phaseChip);
+
+    await evalIn(settingsWin, `document.querySelector('.settings-main .toggle').click()`);
+    await wait(600);
+    record(
+      'softstop.disable-ui',
+      controller.getSettings().softStopEnabled === false &&
+        controller.getState().softStop.phase === 'off',
+      `enabled=${controller.getSettings().softStopEnabled} phase=${controller.getState().softStop.phase}`,
+    );
+
+    // Detection reads processes/adapters only; no AI runtime is required for the probe.
+    await evalIn(
+      settingsWin,
+      `[...document.querySelectorAll('.settings-main .secondary-button')].at(-1)?.click()`,
+    );
+    let detection: string | null = null;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await wait(800);
+      detection = await evalIn<string | null>(
+        settingsWin,
+        `(() => {
+          const el = document.querySelector('.softstop-sample') || document.querySelector('.softstop-fold .inline-note');
+          return el ? el.textContent.trim() : null;
+        })()`,
+      );
+      if (detection) break;
+    }
+    record('softstop.detect-ui', detection !== null && detection.length > 10, String(detection));
 
     // Toggle styling across themes (also verifies the theme update path).
     await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[0].click()`);
@@ -565,7 +716,7 @@ async function runSmoke(): Promise<void> {
     await wait(350);
 
     // Appearance controls through the UI.
-    await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[4].click()`);
+    await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[5].click()`);
     await wait(350);
     await evalIn(
       settingsWin,
@@ -693,7 +844,7 @@ async function runSmoke(): Promise<void> {
   } finally {
     try {
       if (controller.getState().session.active) await controller.deactivate('manual');
-      await controller.updateSettings({ language: 'en-US', theme: 'system', compactDensity: false, lastDurationMs: 30 * 60_000 });
+      await controller.updateSettings({ language: 'en-US', theme: 'system', compactDensity: false, lastDurationMs: 30 * 60_000, softStopEnabled: false });
     } catch {
       /* cleanup is best-effort */
     }
@@ -747,6 +898,7 @@ app.on('before-quit', (event) => {
     } catch (error) {
       logger?.warn('shutdown failed', { message: (error as Error).message });
     }
+    autopilot?.dispose();
     shortcuts?.dispose();
     tray?.destroy();
     windows?.destroyAll();

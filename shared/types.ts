@@ -1,9 +1,25 @@
+import type {
+  AiActivitySnapshot,
+  GuiPreview,
+  GuiProfile,
+  GuiRecordResult,
+  GuiRecordStartResult,
+  GuiRecordStatus,
+  SoftStopAdapterInfo,
+  SoftStopAuditEntry,
+  SoftStopSendResult,
+  SoftStopStatus,
+} from './soft-stop';
+import type { AutopilotApi } from './autopilot';
+
 export type DisplayMode = 'on' | 'auto';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type LanguageSetting = 'system' | 'en-US' | 'zh-CN';
 export type EffectiveLocale = 'en-US' | 'zh-CN';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.2.0';
+export const DEFAULT_SOFT_STOP_PROMPT =
+  'Please stop starting new work, finish the current step, save your state and report briefly. 请停止开始新任务，完成当前步骤、保存状态并简短汇报后结束。';
 export const PRESET_DURATIONS = [15 * 60_000, 30 * 60_000, 60 * 60_000, 2 * 60 * 60_000, 4 * 60 * 60_000, 8 * 60 * 60_000] as const;
 export type PresetDuration = (typeof PRESET_DURATIONS)[number];
 
@@ -22,6 +38,18 @@ export interface Settings {
   batteryGuardEnabled: boolean;
   batteryThreshold: number;
   stopOnBattery: boolean;
+  softStopEnabled: boolean;
+  softStopPrompt: string;
+  softStopThreshold: number;
+  softStopSleepThreshold: number;
+  softStopAllowRemote: boolean;
+  softStopDryRun: boolean;
+  softStopAutoSend: boolean;
+  softStopGuiEnabled: boolean;
+  softStopGuiAllowlist: string[];
+  softStopProfileId: string | null;
+  softStopHttpBase: string;
+  softStopHttpModel: string;
   activityIntervalSec: number;
   showNotifications: boolean;
   closePanelOnBlur: boolean;
@@ -69,6 +97,7 @@ export interface RuntimeState {
   power: PowerInfo;
   capabilities: Capabilities;
   displays: DisplayInfo;
+  softStop: SoftStopStatus;
   now: number;
   busy: boolean;
   locale: EffectiveLocale;
@@ -95,7 +124,7 @@ export interface CommandResult {
 
 export type SettingsPatch = Partial<Omit<Settings, 'schemaVersion'>>;
 
-export type WindowName = 'panel' | 'settings' | 'onboarding';
+export type WindowName = 'panel' | 'settings' | 'onboarding' | 'autopilot';
 
 export type Command =
   | { type: 'toggle' }
@@ -112,11 +141,30 @@ export type Command =
   | { type: 'export-diagnostics' }
   | { type: 'open-external'; url: string };
 
+export interface SoftStopApi {
+  detect: () => Promise<AiActivitySnapshot>;
+  testSend: () => Promise<SoftStopSendResult>;
+  getAudit: () => Promise<SoftStopAuditEntry[]>;
+  scan: (options?: { capture?: boolean }) => Promise<GuiPreview>;
+  recordStart: () => Promise<GuiRecordStartResult>;
+  recordStop: () => Promise<GuiRecordResult>;
+  recordStatus: () => Promise<GuiRecordStatus>;
+  listProfiles: () => Promise<GuiProfile[]>;
+  saveProfile: (profile: GuiProfile) => Promise<CommandResult>;
+  deleteProfile: (id: string) => Promise<CommandResult>;
+  adapters: () => Promise<SoftStopAdapterInfo[]>;
+  setHttpKey: (key: string | null) => Promise<CommandResult>;
+  suspendNow: () => Promise<CommandResult>;
+}
+
 export interface InsomniazApi {
   bootstrap: () => Promise<Bootstrap>;
   subscribe: (listener: (state: RuntimeState) => void) => () => void;
   command: (command: Command) => Promise<CommandResult>;
+  softStop: SoftStopApi;
+  autopilot: AutopilotApi;
   showPanel: () => Promise<void>;
+  showAutopilot: () => Promise<void>;
   hidePanel: () => Promise<void>;
   openSettings: (section?: string) => Promise<void>;
   showOnboarding: () => Promise<void>;
@@ -142,6 +190,18 @@ export const DEFAULT_SETTINGS: Settings = {
   batteryGuardEnabled: true,
   batteryThreshold: 20,
   stopOnBattery: false,
+  softStopEnabled: false,
+  softStopPrompt: DEFAULT_SOFT_STOP_PROMPT,
+  softStopThreshold: 30,
+  softStopSleepThreshold: 10,
+  softStopAllowRemote: false,
+  softStopDryRun: true,
+  softStopAutoSend: false,
+  softStopGuiEnabled: false,
+  softStopGuiAllowlist: [],
+  softStopProfileId: null,
+  softStopHttpBase: '',
+  softStopHttpModel: '',
   activityIntervalSec: 60,
   showNotifications: true,
   closePanelOnBlur: true,

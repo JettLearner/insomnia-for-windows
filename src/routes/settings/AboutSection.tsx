@@ -69,7 +69,7 @@ export function AboutSection() {
           </div>
           <div className="meta-row">
             <span>{t('aboutPort')}</span>
-            <span className="mono">1.0.0</span>
+            <span className="mono">{state.version}</span>
           </div>
           <div className="meta-row">
             <span>{t('aboutElectron')}</span>

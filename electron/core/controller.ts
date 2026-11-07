@@ -21,10 +21,22 @@ import {
 import { translate, type MessageKey } from '../../shared/i18n';
 import { formatRemaining } from '../../shared/format';
 import { sanitizeTimerDuration } from '../../shared/settings';
+import type {
+  AiActivitySnapshot,
+  GuiPreview,
+  GuiProfile,
+  GuiRecordResult,
+  GuiRecordStartResult,
+  GuiRecordStatus,
+  SoftStopAdapterInfo,
+  SoftStopAuditEntry,
+  SoftStopSendResult,
+} from '../../shared/soft-stop';
 import { canonicalize, isValidAccelerator } from '../../shared/shortcut';
 import type { Logger } from './logger';
 import { hasLidRecovery, readLidRecovery, SessionStore, SettingsStore } from './store';
 import { HelperClient, HelperError, type HelperStatus } from './helper-client';
+import { SoftStopEngine, type SoftStopScanOptions } from './soft-stop-engine';
 
 export interface ShortcutBinder {
   /** Unregisters the current accelerator and registers the next one. Returns false if taken. */
@@ -39,7 +51,7 @@ interface ControllerOptions {
   logger: Logger;
 }
 
-type DeactivateReason = 'manual' | 'expired' | 'low-battery' | 'unplugged' | 'shutdown';
+type DeactivateReason = 'manual' | 'expired' | 'low-battery' | 'unplugged' | 'shutdown' | 'soft-stop';
 
 const APP_STORE_URL = 'https://apps.apple.com/app/insomniaz-never-sleep/id1447041581';
 const DEVELOPER_URL = 'https://pawandixit.com';
@@ -47,6 +59,7 @@ const DEVELOPER_URL = 'https://pawandixit.com';
 export class Controller extends EventEmitter {
   readonly helper: HelperClient;
   readonly settings: SettingsStore;
+  readonly softStopEngine: SoftStopEngine;
   private readonly sessionStore: SessionStore;
   private readonly log: Logger;
   private readonly options: ControllerOptions;
@@ -64,6 +77,7 @@ export class Controller extends EventEmitter {
   private lastHelperSync = 0;
   private lastHelperEnsure = 0;
   private lastBatteryPoll = 0;
+  private lastSoftStopTick = 0;
   private lastTickSecond = 0;
   private reapplyingLid = false;
   private lidChain: Promise<unknown> = Promise.resolve();
@@ -80,6 +94,22 @@ export class Controller extends EventEmitter {
       recoveryPath: options.recoveryPath,
       logPath: options.helperLog,
       logger: options.logger,
+    });
+    this.softStopEngine = new SoftStopEngine({
+      userDataDir: options.userDataDir,
+      helper: this.helper,
+      getSettings: () => this.settings.get(),
+      getSession: () => this.session,
+      getPower: () => this.getPowerInfo(),
+      logger: options.logger,
+      performSleep: (percent) => this.protectiveSleep(percent),
+      notifySent: (target, percent) =>
+        this.notify('notifySoftStopTitle', 'notifySoftStopBody', {
+          target,
+          percent: percent === null ? '—' : Math.round(percent),
+        }),
+      notifyFailed: (detail) => this.notify('notifySoftStopFailTitle', 'notifySoftStopFailBody', { detail }),
+      onChange: () => this.emitState(),
     });
   }
 
@@ -168,6 +198,7 @@ export class Controller extends EventEmitter {
     powerMonitor.on('resume', () => {
       this.log.info('system resumed');
       this.lastHelperSync = 0;
+      this.softStopEngine.onResume();
       void this.syncHelperExecution();
       this.reassertLidIfNeeded();
       this.emitState();
@@ -239,6 +270,7 @@ export class Controller extends EventEmitter {
       power,
       capabilities,
       displays: this.getDisplays(),
+      softStop: this.softStopEngine.getStatus(),
       now: Date.now(),
       busy: this.busyCount > 0,
       locale: this.locale,
@@ -336,7 +368,12 @@ export class Controller extends EventEmitter {
         }
       });
     }
-    if (now - this.lastBatteryPoll > 25_000) {
+    if (now - this.lastSoftStopTick > 5_000) {
+      this.lastSoftStopTick = now;
+      void this.softStopEngine.tick(now);
+    }
+    const batteryInterval = this.settings.get().softStopEnabled ? 10_000 : 25_000;
+    if (now - this.lastBatteryPoll > batteryInterval) {
       this.lastBatteryPoll = now;
       void this.refreshPowerStatus();
     }
@@ -456,6 +493,9 @@ export class Controller extends EventEmitter {
   private evaluateBattery(): void {
     if (!this.session.active) return;
     const settings = this.settings.get();
+    // The two-stage soft stop flow owns battery actions while it is enabled;
+    // the legacy guard would otherwise stop the session before stage B.
+    if (settings.softStopEnabled) return;
     const power = this.getPowerInfo();
     if (settings.stopOnBattery && !power.ac) {
       this.log.info('stopping session because the PC is on battery');
@@ -528,10 +568,11 @@ export class Controller extends EventEmitter {
 
     const settings = this.settings.get();
     const power = this.getPowerInfo();
-    if (settings.stopOnBattery && !power.ac) {
+    if (!settings.softStopEnabled && settings.stopOnBattery && !power.ac) {
       return this.fail('errOnBattery', 'ON_BATTERY');
     }
     if (
+      !settings.softStopEnabled &&
       settings.batteryGuardEnabled &&
       !power.ac &&
       power.batteryPercent !== null &&
@@ -542,12 +583,22 @@ export class Controller extends EventEmitter {
         threshold: settings.batteryThreshold,
       });
     }
+    if (
+      settings.softStopEnabled &&
+      !power.ac &&
+      power.batteryPercent !== null &&
+      power.batteryPercent <= settings.softStopSleepThreshold
+    ) {
+      return this.fail('errBatteryLow', 'BATTERY_LOW', {
+        percent: Math.round(power.batteryPercent),
+        threshold: settings.softStopSleepThreshold,
+      });
+    }
 
     if (this.session.active) {
       const now = Date.now();
       this.session = {
         ...this.session,
-        startedAt: now,
         endsAt: duration === null ? null : now + duration,
         durationMs: duration,
       };
@@ -570,6 +621,7 @@ export class Controller extends EventEmitter {
       advanced: settings.advancedDefault,
       lid: false,
     };
+    this.softStopEngine.onSessionStart(now);
     this.settings.update({ lastDurationMs: duration });
     this.persistSession();
     this.applyPowerBlocker();
@@ -600,8 +652,7 @@ export class Controller extends EventEmitter {
         this.emitState();
       }
       return this.ok();
-    }
-    const wasLid = this.session.lid;
+    }    const wasLid = this.session.lid;
     this.stopPowerBlocker();
     if (this.jiggleTimer) {
       clearInterval(this.jiggleTimer);
@@ -618,6 +669,7 @@ export class Controller extends EventEmitter {
 
     this.session = { ...INACTIVE_SESSION };
     this.sessionStore.clear();
+    this.softStopEngine.onSessionEnd();
     this.log.info('session stopped', { reason });
     this.emitState();
 
@@ -851,6 +903,14 @@ export class Controller extends EventEmitter {
     ) {
       this.evaluateBattery();
     }
+    if (
+      patch.softStopEnabled !== undefined ||
+      patch.softStopThreshold !== undefined ||
+      patch.softStopSleepThreshold !== undefined ||
+      patch.softStopDryRun !== undefined
+    ) {
+      void this.softStopEngine.tick();
+    }
     this.emitState();
     return this.ok();
   }
@@ -913,6 +973,86 @@ export class Controller extends EventEmitter {
     if (!result.ok) return result;
     this.notify('notifyTestTitle', 'notifyTestBody');
     this.log.info('test session started', { advanced: settings.advancedDefault });
+    return this.ok();
+  }
+
+  private async protectiveSleep(percent: number | null): Promise<{ ok: boolean; error?: string }> {
+    this.notify('notifySoftStopSleepTitle', 'notifySoftStopSleepBody', {
+      percent: percent === null ? '—' : Math.round(percent),
+    });
+    await this.deactivate('soft-stop');
+    try {
+      if (!this.helper.connected) await this.helper.ensure();
+      if (!this.helper.connected) throw new HelperError('HELPER_OFFLINE', 'The power helper is offline.');
+      await this.helper.suspend();
+      this.log.info('protective sleep requested', { percent });
+      return { ok: true };
+    } catch (error) {
+      const code = this.errorCode(error);
+      this.log.warn('protective sleep failed', { code, message: (error as Error).message });
+      this.notify('notifySoftStopFailTitle', 'notifySoftStopFailBody', { detail: code });
+      return { ok: false, error: code };
+    }
+  }
+
+  softStopDetect(): Promise<AiActivitySnapshot> {
+    return this.softStopEngine.detect(true);
+  }
+
+  softStopTestSend(): Promise<SoftStopSendResult> {
+    return this.softStopEngine.testSend();
+  }
+
+  softStopAudit(limit?: number): SoftStopAuditEntry[] {
+    return this.softStopEngine.auditEntries(
+      typeof limit === 'number' && Number.isFinite(limit) ? Math.round(limit) : 100,
+    );
+  }
+
+  softStopScan(options: SoftStopScanOptions = {}): Promise<GuiPreview> {
+    return this.softStopEngine.scan(options);
+  }
+
+  softStopRecordStart(): Promise<GuiRecordStartResult> {
+    return this.softStopEngine.recordStart();
+  }
+
+  softStopRecordStop(): Promise<GuiRecordResult> {
+    return this.softStopEngine.recordStop();
+  }
+
+  softStopRecordStatus(): Promise<GuiRecordStatus> {
+    return this.softStopEngine.recordStatus();
+  }
+
+  softStopProfiles(): GuiProfile[] {
+    return this.softStopEngine.listProfiles();
+  }
+
+  softStopSaveProfile(raw: unknown): CommandResult {
+    const saved = this.softStopEngine.saveProfile(raw);
+    if (!saved) return this.fail('errGeneric', 'INVALID_PROFILE');
+    return this.ok();
+  }
+
+  softStopDeleteProfile(id: unknown): CommandResult {
+    if (!this.softStopEngine.deleteProfile(id)) return this.fail('errGeneric', 'PROFILE_NOT_FOUND');
+    return this.ok();
+  }
+
+  softStopAdapters(): SoftStopAdapterInfo[] {
+    return this.softStopEngine.adapters();
+  }
+
+  softStopSetKey(key: unknown): CommandResult {
+    const result = this.softStopEngine.setHttpKey(key);
+    if (!result.ok) return this.fail('errGeneric', result.error ?? 'KEY_STORE_FAILED');
+    return this.ok();
+  }
+
+  async softStopSuspendNow(): Promise<CommandResult> {
+    const result = await this.softStopEngine.suspendNow();
+    if (!result.ok) return this.fail('errGeneric', result.error ?? 'SUSPEND_FAILED');
     return this.ok();
   }
 

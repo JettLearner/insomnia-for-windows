@@ -1,6 +1,7 @@
 import { BrowserWindow, screen, type Rectangle } from 'electron';
 import { join } from 'node:path';
 import type { RuntimeState, WindowName } from '../../shared/types';
+import type { AutopilotSnapshot } from '../../shared/autopilot';
 import type { Controller } from './controller';
 import type { Logger } from './logger';
 
@@ -18,11 +19,14 @@ const SHADOW = 12;
 const PANEL = { width: 392, height: 700 };
 const SETTINGS = { width: 860, height: 660 };
 const ONBOARDING = { width: 560, height: 680 };
+/** Free-resizable native shell, unlike the fixed frameless helper windows. */
+const AUTOPILOT = { width: 1120, height: 760, minWidth: 760, minHeight: 500 };
 
 export class WindowManager {
   private panel: BrowserWindow | null = null;
   private settingsWindow: BrowserWindow | null = null;
   private onboardingWindow: BrowserWindow | null = null;
+  private autopilotWindow: BrowserWindow | null = null;
   private lastPanelBlur = 0;
   private closing = false;
   private section = 'general';
@@ -35,7 +39,7 @@ export class WindowManager {
   }
 
   owns(contents: Electron.WebContents): boolean {
-    return [this.panel, this.settingsWindow, this.onboardingWindow].some(
+    return [this.panel, this.settingsWindow, this.onboardingWindow, this.autopilotWindow].some(
       (win) => win !== null && !win.isDestroyed() && win.webContents === contents,
     );
   }
@@ -43,6 +47,7 @@ export class WindowManager {
   getWindow(name: WindowName): BrowserWindow | null {
     if (name === 'panel') return this.panel;
     if (name === 'settings') return this.settingsWindow;
+    if (name === 'autopilot') return this.autopilotWindow;
     return this.onboardingWindow;
   }
 
@@ -203,9 +208,54 @@ export class WindowManager {
     return win;
   }
 
+  createAutopilot(): BrowserWindow {
+    if (this.autopilotWindow && !this.autopilotWindow.isDestroyed()) return this.autopilotWindow;
+    const win = new BrowserWindow({
+      ...this.baseWindowOptions(),
+      width: AUTOPILOT.width,
+      height: AUTOPILOT.height,
+      minWidth: AUTOPILOT.minWidth,
+      minHeight: AUTOPILOT.minHeight,
+      frame: true,
+      transparent: false,
+      backgroundColor: '#0f1115',
+      hasShadow: true,
+      resizable: true,
+      maximizable: true,
+      minimizable: true,
+      fullscreenable: true,
+      skipTaskbar: false,
+      title: 'InsomniaZ Autopilot',
+    });
+    win.setMenuBarVisibility(false);
+    this.autopilotWindow = win;
+    this.attachSecurity(win);
+    this.load(win, 'autopilot');
+    win.on('close', (event) => this.interceptClose(win, event));
+    return win;
+  }
+
+  showAutopilot(): void {
+    const win = this.createAutopilot();
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  }
+
+  /** The scheduler keeps running while this window is hidden, so updates are cheap. */
+  broadcastAutopilot(snapshot: AutopilotSnapshot): void {
+    const win = this.autopilotWindow;
+    if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+    win.webContents.send('autopilot:update', snapshot);
+  }
+
   private interceptClose(win: BrowserWindow, event: Electron.Event): void {
     if (this.closing) return;
     event.preventDefault();
+    if (win === this.settingsWindow) {
+      this.closeWindow('settings');
+      return;
+    }
     win.hide();
   }
 
@@ -318,12 +368,27 @@ export class WindowManager {
 
   closeWindow(name: WindowName): void {
     if (name === 'panel') this.panel?.hide();
-    else if (name === 'settings') this.settingsWindow?.hide();
+    else if (name === 'settings') {
+      this.settingsWindow?.hide();
+      // Settings is a leaf page: closing it lands back on the control panel
+      // instead of leaving the user with nothing on screen.
+      this.showPanel();
+    } else if (name === 'autopilot') this.autopilotWindow?.hide();
     else this.onboardingWindow?.hide();
   }
 
+  /** Hide without bringing the panel forward; the window stays reachable. */
+  hideWindow(name: WindowName): void {
+    this.getWindow(name)?.hide();
+  }
+
+  /** Used the moment the desktop becomes shared or busy: nothing may stay visible. */
+  hideAutopilot(): void {
+    if (this.autopilotWindow && !this.autopilotWindow.isDestroyed()) this.autopilotWindow.hide();
+  }
+
   minimizeWindow(name: WindowName): void {
-    this.closeWindow(name);
+    this.hideWindow(name);
   }
 
   sendState(win: BrowserWindow): void {
@@ -345,12 +410,13 @@ export class WindowManager {
 
   destroyAll(): void {
     this.closing = true;
-    for (const win of [this.panel, this.settingsWindow, this.onboardingWindow]) {
+    for (const win of [this.panel, this.settingsWindow, this.onboardingWindow, this.autopilotWindow]) {
       if (win && !win.isDestroyed()) win.destroy();
     }
     this.panel = null;
     this.settingsWindow = null;
     this.onboardingWindow = null;
+    this.autopilotWindow = null;
   }
 
   get preloadPath(): string {

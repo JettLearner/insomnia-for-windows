@@ -1,131 +1,247 @@
 # InsomniaZ for Windows
 
-> 合盖也不睡，任务不停。  
-> 对 macOS 菜单栏应用 **InsomniaZ – Never Sleep** 的独立 Windows 移植版，与原作者无关联。
+> Keep your PC awake — even with the lid closed. Keep your AI tasks on schedule.
+> An independent Windows port of the macOS menu-bar app **InsomniaZ – Never Sleep**. Not affiliated with the original author.
+
+**English** · [中文](README.zh-CN.md)
 
 <p align="center">
-  <img src="docs/captures/panel-active-on-zh.png" alt="InsomniaZ 主面板" width="300">
-  <img src="docs/captures/packaged-onboarding-final.png" alt="首次启动引导" width="300">
+  <img src="docs/captures/panel-active-on-en.png" alt="InsomniaZ control panel" width="300">
+  <img src="docs/captures/packaged-onboarding-final.png" alt="First-run onboarding" width="300">
 </p>
 
-纯托盘应用：所有窗口都不占任务栏，关闭窗口只隐藏，退出由托盘菜单控制。原菜单栏图标的点击、长按与右键能力，全部收进托盘交互：左键打开控制面板，右键打开完整原生菜单，长按面板状态环打开设置。
+A tray-first app: no window takes a taskbar slot except the Autopilot editor, closing a window only
+hides it, and quitting is done from the tray. Everything the original menu-bar icon did with click,
+long-press and right-click now lives in the tray: left-click opens the control panel, right-click
+opens the full native menu, long-pressing the status ring opens Settings.
 
-## 下载
+- **1.1.0** added **Soft Stop**: at battery threshold A it sends a fixed prompt to the AI that is
+  still running; at the lower threshold B it ends the session and sleeps protectively. Local
+  runtimes, OpenAI-compatible endpoints, webhooks, CLI, plus GUI recognition and mouse teaching for
+  apps without an API.
+- **1.2.0** adds **Autopilot**: a background scheduler that delivers a full prompt — attachments,
+  model, thinking level, parameters, target conversation — into ZCode or WorkBuddy at any time you
+  choose, in a freely resizable native window. It syncs the live model and conversation lists,
+  retries from a built-in error catalog, falls back to local Ollama or an emergency API, and hides
+  itself and defers GUI automation whenever recording, remote control or high load is detected.
 
-安装包与便携版发布在 [GitHub Releases](../../releases/latest)。
+## Download
 
-| 文件 | 说明 |
+Installers and the portable build are published on [GitHub Releases](../../releases/latest).
+
+| File | Description |
 |---|---|
-| `InsomniaZ-Windows-1.0.0-x64.exe` | 安装版（推荐）。按用户安装，可选择安装目录，创建开始菜单与桌面快捷方式。 |
-| `InsomniaZ-Windows-1.0.0-portable.exe` | 便携版。单个 exe 直接运行，不写安装目录；设置仍保存在 `%APPDATA%\InsomniaZ\`。 |
-| `SHA256SUMS.txt` | 两个二进制文件的 SHA-256，下载后请核对。 |
+| `InsomniaZ-Windows-1.2.0-x64.exe` | Installer (recommended). Per-user, choosable install directory, Start-menu and desktop shortcuts. |
+| `InsomniaZ-Windows-1.2.0-portable.exe` | Portable. One exe, no install directory; settings still live in `%APPDATA%\InsomniaZ\`. |
+| `SHA256SUMS.txt` | SHA-256 of both binaries — verify after downloading. |
 
-- 系统要求：Windows 10 22H2 或 Windows 11，x64。
-- 安装包未做代码签名，SmartScreen 可能提示“未知发布者”。可先核对 SHA-256，再选择“更多信息 → 仍要运行”。
-- 合盖保护需要管理员授权；拒绝 UAC 不影响其余防睡眠功能，界面会明确标注合盖保护不可用。
-- 应用本身不联网、不检查更新；新版本需要手动下载。
+- Requirements: Windows 10 22H2 or Windows 11, x64.
+- The binaries are **not code-signed**, so SmartScreen may say "unknown publisher". Verify the
+  SHA-256 first, then choose "More info → Run anyway".
+- Lid-close protection needs administrator approval. Declining UAC does not affect the other
+  keep-awake features; the UI clearly marks lid protection as unavailable.
+- The app does not phone home and does not check for updates. It only contacts a remote address
+  when you explicitly enable a remote Soft Stop endpoint or the remote Autopilot fallback.
+  New versions must be downloaded manually.
 
-## 功能
+## Features
 
-- **防睡眠**：激活时通过 Electron `powerSaveBlocker` 与提权助手的 `SetThreadExecutionState` 双层保持系统唤醒。
-- **合盖继续运行**：把当前电源方案的合盖动作临时改为“不采取任何操作”（AC/DC 同时生效）。写入前备份原值，写入后回读校验；退出或崩溃时自动还原，异常重启后会在下次启动时提示恢复。
-- **显示模式**：`On` 屏幕常亮；`Auto` 屏幕可关闭、系统继续运行。
-- **定时会话**：15 分钟 / 30 分钟 / 1 小时 / 2 小时 / 4 小时 / 8 小时 / ∞；到点自动结束。异常退出后可恢复未到期会话（不会静默恢复合盖权限）。
-- **高级模式**：按 30–300 秒间隔发送无害的 F15 按键，避免 Teams、Slack 等把电脑判定为空闲。
-- **低电量保护**：默认 20%，可配置 5–95%；可选“使用电池时停止”。
-- **全局快捷键**：默认 `Ctrl+Alt+I`，可在设置中录制、恢复默认，冲突时明确提示。
-- **托盘右键菜单全集**：开关、时长、显示模式、合盖保护、活动模拟、打开面板、设置、关于、兼容性检查、退出。
-- **外观与语言**：中英双语、深色/浅色/跟随系统、紧凑布局、系统通知开关。
-- **零网络、零遥测**：无分析 SDK、无自动更新、无后台下载；主进程安装网络守卫，渲染层使用严格 CSP。
+### Keep-awake core
 
-## 交互映射
+- **Sleep prevention** — Electron `powerSaveBlocker` plus `SetThreadExecutionState` in the elevated
+  helper, two independent layers.
+- **Run with the lid closed** — temporarily sets the current power scheme's lid action to "do
+  nothing" (AC and DC). The original value is backed up before writing and read back after; it is
+  restored on exit or crash, and an abnormal restart prompts to recover it next launch.
+- **Display mode** — `On` keeps the screen lit; `Auto` lets the screen sleep while the system runs.
+- **Timed sessions** — 15 m / 30 m / 1 h / 2 h / 4 h / 8 h / ∞, ending automatically. An unexpired
+  session can be resumed after a crash (lid permission is never silently restored).
+- **Advanced mode** — sends a harmless F15 keypress every 30–300 s so Teams, Slack and similar do
+  not mark the machine idle.
+- **Low-battery protection** — 20% by default, configurable 5–95%, optionally "stop on battery".
+- **Global shortcut** — `Ctrl+Alt+I` by default; record your own, restore the default, and get an
+  explicit warning on conflict.
+- **Full tray menu** — toggle, duration, display mode, lid protection, activity simulation, panel,
+  Autopilot, settings, about, compatibility check, quit.
+- **Appearance and language** — English/Chinese, dark/light/system, compact layout, notifications.
 
-| macOS 菜单栏 | Windows |
+### Soft Stop (1.1.0)
+
+Two battery thresholds. At A, if an AI is genuinely still working, a fixed prompt is sent; at B the
+session ends, the lid policy is restored and Windows sleeps. Detection covers wireless/cellular
+streaming and local AI runtimes; sending covers local runtimes, OpenAI-compatible endpoints,
+webhooks, CLI and a GUI fallback. Apps without an API are driven through UI Automation, with
+dry-run preview, a whitelist and first-run confirmation. Teaching records **only mouse clicks and
+hovers — never typed text**. See the [Soft Stop guide](docs/soft-stop.md).
+
+### Autopilot (1.2.0)
+
+- **Scheduled delivery** into ZCode, WorkBuddy, any matched window, or a fallback-only route.
+  Manual, once, daily, weekly (with a weekday picker) or every N minutes, plus a catch-up policy for
+  missed runs.
+- **Per-task model, thinking level and parameters.** Thinking is a five-position ring
+  (Off/Low/Medium/High/Max); in ZCode it is stepped with `Ctrl+T` and read back to confirm.
+- **Live catalog sync.** Models and conversations are collected from the running app and merged
+  with a built-in seed catalog. When ZCode hides models because the account is out of quota, the
+  list is refreshed *before* a model is chosen.
+- **Three-level control location** — MSAA name/role, then OCR label, then window-relative ratio
+  anchors, so non-maximised windows, multi-monitor setups and DPI changes all work.
+- **Attachments with an original-path rule** — validate, search for moved files, back up optionally,
+  and always **restore a backup into the original directory before the model reads the original
+  path**. Missing files are skipped with a note appended to the prompt.
+- **Built-in error catalog and retries** — each code has its own attempt limit, backoff and terminal
+  action; at most two send clicks per run, then the task is blocked rather than risking a duplicate.
+- **Emergency fallback** — local Ollama first, then an OpenAI-compatible endpoint (off by default,
+  key required, DPAPI-encrypted).
+- **Protection gate** — on recording, remote control or high CPU load the Autopilot window is hidden
+  completely and GUI delivery is deferred, with a 20 s cooldown.
+- **Adaptive real-time saving** — edits survive the window being hidden, minimised or closed;
+  state is flushed on suspend and shutdown.
+
+See the [Autopilot guide](docs/autopilot.md). **Autopilot has no dry-run and no whitelist: it really
+clicks send.** Use *Run now* attended the first time.
+
+## Interaction mapping
+
+| macOS menu bar | Windows |
 |---|---|
-| 左键图标打开 popover | 左键托盘图标打开控制面板（可在设置关闭） |
-| 右键菜单 | 右键托盘图标打开完整原生菜单 |
-| 菜单栏图标着色/灰显 | `tray-active.png` / `tray-idle.png`，Tooltip 显示剩余时间 |
-| 无 Dock 图标 | 所有窗口 `skipTaskbar`，主面板使用工具窗口样式 |
-| 长按状态环 | 面板内按住状态环 550 ms 打开设置 |
-| 全局快捷键 | `Ctrl+Alt+I` 切换会话 |
+| Left-click opens the popover | Left-click the tray icon opens the control panel (can be disabled) |
+| Right-click menu | Right-click the tray icon opens the full native menu |
+| Icon tint / grey-out | `tray-active.png` / `tray-idle.png`; tooltip shows remaining time |
+| No Dock icon | All windows use `skipTaskbar`, except the Autopilot editor which is a normal window |
+| Long-press the status ring | Hold the ring for 550 ms to open Settings |
+| Global shortcut | `Ctrl+Alt+I` toggles the session |
+| — | Closing Settings brings the control panel back |
 
-## 使用
+## Usage
 
-1. 运行安装包，或直接运行便携版。
-2. 首次启动显示三步引导；完成后应用只在托盘运行。
-3. 左键托盘图标打开面板；右键打开完整菜单。
-4. 点按状态环或状态胶囊开始/停止；选择时长会立即开始计时。
-5. 需要合盖继续运行时，在面板或右键菜单打开“合盖后保持运行”，按提示授予管理员权限。
-6. 关闭面板只是隐藏；要彻底退出，使用面板右下角“退出”或托盘菜单“退出”。
+1. Run the installer, or just run the portable exe.
+2. First launch shows a three-step onboarding; afterwards the app lives in the tray.
+3. Left-click the tray icon for the panel, right-click for the full menu.
+4. Click the status ring or capsule to start/stop; picking a duration starts the timer immediately.
+5. To keep running with the lid closed, enable "Keep running with lid closed" and approve UAC.
+6. Settings → Soft Stop: enter the fixed stop prompt and thresholds A/B; verify the target with
+   dry-run and **Send a test prompt** first.
+7. For chat apps without an API: enable the GUI fallback, whitelist the process, preview with
+   **Scan windows**, then decide whether to allow unattended sending.
+8. When the dictionary misreads an app, use **Start recording**: click the input box, hover the send
+   button, stop, then confirm or edit the suggested labels and save the profile.
+9. For scheduled delivery: open **Autopilot** from the panel footer or tray, start the target app
+   yourself, sync models, create a task and watch the first **Run now**.
+10. Closing the panel only hides it. To quit, use the panel's Quit button or the tray menu.
 
-## 为什么需要管理员权限
+## Why administrator rights are needed
 
-Windows 没有面向普通应用的“合盖不睡眠”开关，只能修改当前电源方案中的 `LIDACTION`（合盖动作），这需要管理员权限。本项目不安装服务、不写计划任务；提权助手只在开启合盖保护时运行：
+Windows has no "don't sleep on lid close" switch for ordinary apps; the only way is to change
+`LIDACTION` in the current power scheme, which requires elevation. This project installs no service
+and no scheduled task. The elevated helper runs only while lid protection is on:
 
-- 只有开启“合盖后保持运行”时才通过 UAC 启动助手；
-- 助手只接受固定命令集，使用随机命名管道、随机 token 和父进程监视；
-- 父进程退出或崩溃时，助手会还原原合盖策略并退出；
-- 异常重启后，下次启动会提示恢复未还原的策略，需再次确认 UAC；
-- 正常退出会删除 `%APPDATA%\InsomniaZ\lid-recovery.json`。
+- it is launched through UAC only when you enable lid protection;
+- it accepts a fixed command set over a randomly named pipe with a random token and parent watching;
+- when the parent exits or crashes, it restores the original lid policy and exits;
+- after an abnormal restart, the next launch asks to recover the unrestored policy (UAC again);
+- a normal exit deletes `%APPDATA%\InsomniaZ\lid-recovery.json`.
 
-如果拒绝 UAC，防睡眠、显示模式、定时、快捷键等功能仍然可用，只有合盖保护不可用。
+If you decline UAC, sleep prevention, display mode, timers and shortcuts still work — only lid
+protection is unavailable. The Autopilot helper `InsomniaZAuto.exe` does **not** need elevation.
 
-## 隐私与安全
+## Privacy and security
 
-- 设置、会话与日志保存在 `%APPDATA%\InsomniaZ\`；不写入其他注册表位置（用户主动开启的开机启动除外）。
-- 合盖原值备份在 `%APPDATA%\InsomniaZ\lid-recovery.json`，正常退出即删除。
-- 诊断导出只包含版本、电源能力、状态与日志，由用户主动触发。
-- 应用不发起远程请求；渲染层启用 `contextIsolation`、`sandbox`，禁用 `nodeIntegration`，使用严格 CSP；生产构建禁用 DevTools。
-- 完整设计与威胁模型见 [架构设计](docs/02-architecture.md) 与 [安全评审](docs/05-review.md)。
+- Settings, sessions and logs live in `%APPDATA%\InsomniaZ\`; Autopilot data lives in
+  `%APPDATA%\InsomniaZ\autopilot\`. No other registry location is written (except startup, which you
+  enable yourself).
+- The original lid value is backed up to `lid-recovery.json` and deleted on normal exit.
+- Diagnostics export contains only version, power capability, state and logs, and is user-triggered.
+- No remote requests by default. Soft Stop only contacts loopback endpoints; remote endpoints
+  require an explicit opt-in. Autopilot's fallback prefers local Ollama and never sends it an
+  `Authorization` header; the remote channel needs both opt-in and a stored key.
+- API keys are DPAPI-encrypted. Logs and audits never contain keys or prompt text.
+- AI detection reads only process names, ports, adapters and throughput. Teaching installs no
+  keyboard hook and records no typed content. Screenshots are taken only on explicit opt-in, and
+  only of the selected window.
+- Attachment search reads names, sizes and a 64 KiB hash; a known file is only matched by name
+  **plus** size or hash, so an unrelated namesake is never delivered.
+- The renderer uses `contextIsolation`, `sandbox`, no `nodeIntegration` and a strict CSP; DevTools
+  are disabled in production.
 
-## 验证状态
+Full policy: [SECURITY.md](SECURITY.md) · [中文](SECURITY.zh-CN.md).
 
-本次 1.0.0 在 Windows 10 22H2（19045，x64）上完成：
+## Verification status
 
-| 项目 | 结果 |
+Current 1.2.0 baseline on Windows 10 22H2 (19045, x64):
+
+| Item | Result |
 |---|---|
-| 类型检查 | 通过 |
-| Vitest 单元/集成 | **58/58 通过**（含真实 helper 进程集成） |
-| 真实 Electron 冒烟 | **37/37 通过** |
-| 全新用户目录首启冒烟 | **8/8 通过** |
-| 最终二进制端到端 | 引导 → 跳过 → 面板 → 设置 → 退出；helper 正常回收，无残留恢复文件 |
-| 合盖策略真实写入/恢复 | 提权、写入、退出还原已在真机走通；物理合盖未测 |
+| Type check (main + renderer + tests) | Pass |
+| Vitest unit/integration | **302 tests in 22 files pass**, including real helper processes, real HTTP sockets, scheduler/catch-up, the error catalog, fallback channels and the protection gate |
+| Production build (main + renderer + both helpers) | Pass |
+| Real Electron smoke | **Not re-run for 1.2.0.** The last full run was 44/44 on 1.1.0; re-running it would touch the system power policy while a protected session is active |
+| Real ZCode / WorkBuddy delivery | Control maps were recorded from the real apps and are covered by unit tests; an attended end-to-end delivery on 1.2.0 is still outstanding |
+| Protective sleep | Implemented and unit-tested; **not executed on the real machine**, to avoid interrupting running work |
+| Lid policy write/restore | Elevation, write and exit-restore verified on real hardware; physical lid close untested |
 
-证据与限制见 [验收报告](docs/04-acceptance.md) 和 [设计、代码与安全评审](docs/05-review.md)。
+Historical evidence for 1.0.0/1.1.0 (58 + 149 unit tests, 37/44 smoke checks, a real GUI send with a
+byte-identical payload, teaching with `leakedPrompt=false`) is kept in the
+[design archive](design-archive/README.md).
 
-## 已知限制
+## Known limitations
 
-- **物理合盖未实测**：提权、策略写入与退出恢复已在真机走通，但未真正合上盖子验证任务不中断，也未测试合盖状态下拔插电源。建议首次使用在有管理员权限的机器上按验收报告 8.2 节手工确认。
-- **未做代码签名**：SmartScreen 会提示未知发布者；请用 `SHA256SUMS.txt` 校验。
-- **Windows 11 / OEM 电源方案未逐一覆盖**：仅在 Windows 10 22H2 的平衡方案上实测；其他方案走同一 Power API 路径。
-- **通知视觉未人工确认**：Windows 通知中心是否展示、是否被专注助手拦截，需要按机器策略确认。
-- **安装版开机启动未做重启验证**：设置项已实现；便携版按设计不支持开机启动。
-- **NSIS 安装/卸载流程未在全新系统实测**：安装包由已验收的 `win-unpacked` 目录生成；建议首次部署时按验收报告 8.2 节同时确认安装、卸载与开机启动。
-- **内存高于设计目标**：空闲实测约 213 MB（应用 186 MB + helper 27 MB），高于 160 MB 目标；空闲 CPU 0–0.16%。这是 Electron 38 三进程基线的代价。
-- **多显示器 / Modern Standby 为尽力适配**：面板按光标所在显示器工作区定位，仅在单显示器 150% 缩放下实测。
-- **UI 复刻边界**：官方仅提供 5 张商店截图，设置页、引导页与部分状态属于同设计语言的合理推断，不是逐像素复制。
+- **Autopilot clicks for real** — no dry-run, no whitelist, no confirmation gate. The target app must
+  already be running and visible; nothing auto-launches it.
+- **Fallback answers are not returned** to the target app, and images are dropped on the remote API
+  channel (Ollama only).
+- **Physical lid close untested** — elevation, policy write and exit-restore are verified, but the
+  lid was never actually closed, nor was AC unplugged while closed.
+- **Protective sleep never executed on real hardware** — verify the local path with **Sleep now**
+  while attending the machine.
+- **GUI recognition depends on accessibility** — pure-canvas apps with no UIA/MSAA cannot be read;
+  minimised windows must be restored; elevated apps need equal elevation. A target-app redesign can
+  break ratio anchors and OCR labels.
+- **Remote endpoints leave this machine** — once enabled, prompts and battery level go to the
+  service you configured; evaluate its privacy policy yourself.
+- **Not code-signed** — SmartScreen will warn; verify with `SHA256SUMS.txt`.
+- **Windows 11 / OEM power schemes not individually covered** — measured on Windows 10 22H2
+  Balanced; other schemes use the same Power API path.
+- **Notification visuals unconfirmed** — whether Action Center shows them, or Focus Assist blocks
+  them, depends on machine policy.
+- **Installer startup not reboot-verified** — the setting exists; the portable build deliberately
+  does not support startup.
+- **NSIS install/uninstall not tested on a clean system** — installers are generated from an
+  accepted `win-unpacked` directory.
+- **Memory above the design target** — idle ≈213 MB (app 186 MB + helper 27 MB) versus a 160 MB
+  goal; idle CPU 0–0.16%. This is the Electron 38 three-process baseline.
+- **Multi-monitor / Modern Standby are best-effort** — the panel follows the cursor's monitor work
+  area; measured on a single display at 150% scaling.
+- **UI replication boundary** — the official app provided only five store screenshots; Settings,
+  onboarding and some states are reasonable inferences in the same design language, not
+  pixel-exact copies.
 
-## 开发与构建
+## Development
 
-要求 Node.js 22+、npm 10+。Windows 构建还需要系统自带的 .NET Framework 4.8 编译器（`csc.exe`）来编译提权助手。
+Requires Node.js 22+ and npm 10+. Windows builds also need the built-in .NET Framework 4.8 compiler
+(`csc.exe`) for both helpers.
 
 ```bash
 npm install
-npm run dev        # Vite + Electron 热更新
-npm run typecheck  # 主进程 + 渲染进程 + 测试类型检查
-npm test           # Vitest 单元/集成测试
-npm run build      # 主进程 + 渲染进程 + helper
-npm start          # 生产构建后启动
-npm run capture    # 生成 docs/captures 界面截图
-npx electron . --smoke        # 37 项真实交互冒烟（需先 npm run build）
-npx electron . --smoke-fresh  # 全新用户目录首启冒烟（8 项）
-npm run dist       # NSIS + 便携版，输出 release/
+npm run dev        # Vite + Electron hot reload
+npm run typecheck  # main + renderer + tests
+npm test           # Vitest unit/integration
+npm run build      # main + renderer + both helpers
+npm start          # production build, then launch
+npm run capture    # regenerate docs/captures screenshots
+npx electron . --smoke        # real-interaction smoke (build first)
+npx electron . --smoke-fresh  # fresh-user-data first-run smoke
+npm run dist       # NSIS + portable into release/
 ```
 
-<details>
-<summary>离线/镜像环境打包与资源写入说明</summary>
+> `capture` and `--smoke` run against the real desktop and can touch the system power policy.
+> Do not run them while a lid-protected session is active.
 
-`electron-builder` 默认从 GitHub 下载 Electron 与 NSIS 资源。受限网络下可设置镜像，并按“目录包 → 写入图标/版本信息 → 生成安装包”的顺序执行：
+<details>
+<summary>Packaging on offline / mirrored networks</summary>
+
+`electron-builder` downloads Electron and NSIS resources from GitHub by default. On a restricted
+network, set a mirror and follow "directory package → write icon/version info → build installers":
 
 ```bash
 export ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/
@@ -138,27 +254,32 @@ npx electron-builder --win --dir --x64 \
   --set-version-string ProductName InsomniaZ \
   --set-version-string CompanyName "Independent Windows port" \
   --set-version-string LegalCopyright "Copyright (c) 2026 Independent Windows port" \
-  --set-file-version 1.0.0 --set-product-version 1.0.0.0
+  --set-file-version 1.2.0 --set-product-version 1.2.0.0
 npx electron-builder --win nsis portable --x64 --prepackaged build-out/win-unpacked \
   --config.directories.output=build-out-installers --config.win.signAndEditExecutable=false
 ```
 
-若 `release/` 被上次失败留下的句柄锁住，换一个 `--config.directories.output` 即可；不要复用死句柄目录。`rcedit-x64.exe` 来自 electron-builder 下载的 winCodeSign 包，不随仓库分发。
+If `release/` is locked by a handle from a previous failed run, use a different
+`--config.directories.output`; never reuse a directory with a dead handle. `rcedit-x64.exe` comes
+from the winCodeSign package downloaded by electron-builder and is not distributed with the repo.
 
 </details>
 
-## 文档
+## Documentation
 
-- [需求规格与功能基线](docs/01-requirements.md)
-- [架构设计](docs/02-architecture.md)
-- [UI 规范](docs/03-ui-spec.md)
-- [验收报告](docs/04-acceptance.md)
-- [设计、代码与安全评审](docs/05-review.md)
-- [v1.0.0 发布说明](docs/release-notes-v1.0.0.md)
-- [发布清单（维护者）](docs/06-publishing.md)
-- [安全策略](SECURITY.md)
-- 界面截图：[docs/captures](docs/captures)
+| Topic | English | 中文 |
+|---|---|---|
+| Autopilot guide | [docs/autopilot.md](docs/autopilot.md) | [docs/autopilot.zh-CN.md](docs/autopilot.zh-CN.md) |
+| Soft Stop guide | [docs/soft-stop.md](docs/soft-stop.md) | [docs/soft-stop.zh-CN.md](docs/soft-stop.zh-CN.md) |
+| Release notes 1.2.0 | [docs/release-notes-v1.2.0.md](docs/release-notes-v1.2.0.md) | [docs/release-notes-v1.2.0.zh-CN.md](docs/release-notes-v1.2.0.zh-CN.md) |
+| Publishing checklist | [docs/publishing.md](docs/publishing.md) | [docs/publishing.zh-CN.md](docs/publishing.zh-CN.md) |
+| Security policy | [SECURITY.md](SECURITY.md) | [SECURITY.zh-CN.md](SECURITY.zh-CN.md) |
+| Historical design, acceptance and review records | [design-archive/](design-archive/README.md) | same |
+| Screenshots | [docs/captures/](docs/captures) | same |
 
-## 许可与声明
+## License and attribution
 
-代码以 [MIT](LICENSE) 许可发布。**InsomniaZ** 名称与相关商标归原作者所有，本项目仅用于说明移植目标，与原作者无关联。界面采用相同设计语言，图标与素材为自绘，不包含原应用受版权保护的资源。
+Code is released under the [MIT](LICENSE) license. The **InsomniaZ** name and related trademarks
+belong to the original author; this project only describes the porting target and is not affiliated
+with them. The UI follows the same design language, but icons and assets are drawn from scratch and
+no copyrighted resources from the original app are included.

@@ -1,5 +1,8 @@
 # InsomniaZ for Windows — 需求规格与功能基线
 
+> **已归档 / Archived** — 历史设计记录，不代表当前行为。现行文档见 [`docs/`](../../docs) 与 [README](../../README.zh-CN.md)。
+> Historical design record, not current behaviour. See [`docs/`](../../docs) and the [README](../../README.md).
+
 > 版本：1.0  
 > 日期：2026-10-31  
 > 目标应用：**InsomniaZ – Never Sleep**（macOS，Pawan Dixit，v5.3，App Store ID 1447041581）  
@@ -149,7 +152,7 @@
 
 | ID | 需求 | 优先级 | 验收要点 |
 |---|---|---|---|
-| FR-38 | 零遥测、零网络请求 | P0 | 无分析 SDK；默认会话阻止外部网络；CSP |
+| FR-38 | 默认零遥测、零网络请求 | P0 | 无分析 SDK；默认会话阻止外部网络；CSP；v1.1.0 起仅用户显式启用的 Soft Stop 远程端点例外 |
 | FR-39 | 本地持久化 | P0 | `%APPDATA%/InsomniaZ/`；不写注册表（除开机启动） |
 | FR-40 | 外部链接白名单 | P0 | 仅允许 `https:` / `mailto:`，且只由显式操作触发 |
 | FR-41 | IPC 最小暴露 | P0 | `contextIsolation`、`sandbox`、无 `nodeIntegration`；严格校验参数 |
@@ -226,3 +229,24 @@
 - 旧版功能描述（搜索结果存档）：Left/Right Click、Keyboard Shortcut、power wake script、autopilot
 - 微软 Power Management API：`PowerReadACValueIndex` / `PowerWriteACValueIndex` / `PowerSetActiveScheme`
 - 微软 `SetThreadExecutionState`、`SendInput`、`GetLastInputInfo` 文档
+
+---
+
+## 9. v1.1.0 增量需求（Soft Stop 软叫停）
+
+> 来源：用户 2026-10-31 追加需求。目标是在无人值守的 AI 长任务中，按电量自动“先叫停、再休眠”。
+
+| ID | 需求 | 优先级 | 验收 |
+|---|---|---|---|
+| SS-01 | 用户可设置一段固定提示词，在电量 A 点发送 | P0 | 提示词保存、模板变量渲染、审计不记录正文 |
+| SS-02 | 电量 B 点结束会话并保护性休眠；B 至少比 A 低 5% | P0 | 状态机单测；`Sleep now` 手工验证 |
+| SS-03 | 仅在电池供电、会话激活时生效；插电/回升自动重置 | P0 | 假时钟单测 + 真实冒烟 |
+| SS-04 | 发送前检测无线/蜂窝 AI 流式传输与本地 AI 运行时；无活动不发 | P0 | 检测器单测 + 真机 activity 探测 |
+| SS-05 | 支持本地运行时、OpenAI 兼容端点、Webhook、CLI 与 GUI 兜底 | P0 | 真实 HTTP socket 测试 + 原生窗口发送 |
+| SS-06 | GUI 通用识别输入框/发送键/侧边栏/忙碌对话，白名单与确认闸门 | P0 | 原生测试窗口扫描/发送/重扫 |
+| SS-07 | 鼠标示教录制：不记录键入文字，自动标注，可修改标签并保存 profile | P0 | 真机录制 3 事件、`leakedPrompt=false` |
+| SS-08 | 隐私：默认仅回环、远程需显式允许、API Key DPAPI、审计脱敏 | P0 | 代码评审 + 远端闸门单测 |
+| SS-09 | 设置页中英双语文案、五张卡片、相位芯片与审计列表 | P1 | 截图 + 8 段式设置冒烟 |
+| SS-10 | 软叫停开启时原 Battery guard 自动让位 | P1 | 设置页说明 + 单元测试 |
+
+**范围外**：读取/理解 AI 输出内容；OCR 屏幕文字；远程模型托管；在 Canvas 类无 UIA 应用中自动点击。

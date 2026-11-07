@@ -339,6 +339,14 @@ export function Panel() {
             <Sliders size={14} />
             {t('openSettings')}
           </button>
+          <button
+            type="button"
+            className="footer-action"
+            onClick={() => void api?.showAutopilot()}
+          >
+            <Clock size={14} />
+            {t('autopilotOpen')}
+          </button>
           <div className="shortcut-chip">
             <span>{t('shortcutHint')}</span>
             <Keycaps accelerator={settings.shortcut} />

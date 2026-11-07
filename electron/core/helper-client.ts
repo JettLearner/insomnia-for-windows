@@ -438,6 +438,36 @@ export class HelperClient extends EventEmitter {
     return status;
   }
 
+  async guiScan(
+    args: { processName?: string; windowTitle?: string; maxWindows?: number; maxElements?: number } = {},
+    timeoutMs = 95_000,
+  ): Promise<unknown> {
+    return this.request('uia.scan', { ...args }, timeoutMs);
+  }
+
+  async guiAct(
+    args: { action: string; ref: string; window?: string; hwnd?: number; text?: string },
+    timeoutMs = 90_000,
+  ): Promise<unknown> {
+    return this.request('uia.act', { ...args }, timeoutMs);
+  }
+
+  async guiRecordStart(maxSeconds = 300): Promise<unknown> {
+    return this.request('uia.record.start', { maxSeconds }, 15_000);
+  }
+
+  async guiRecordStop(): Promise<unknown> {
+    return this.request('uia.record.stop', {}, 15_000);
+  }
+
+  async guiRecordStatus(): Promise<unknown> {
+    return this.request('uia.record.status', {}, 8_000);
+  }
+
+  async suspend(): Promise<unknown> {
+    return this.request('suspend', { reason: 'soft-stop' }, 10_000);
+  }
+
   async restartElevated(): Promise<HelperStatus> {
     await this.shutdownHelper();
     this.stopped = false;

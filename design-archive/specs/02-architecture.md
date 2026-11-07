@@ -1,5 +1,8 @@
 # InsomniaZ for Windows — 架构设计
 
+> **已归档 / Archived** — 历史设计记录，不代表当前行为。现行文档见 [`docs/`](../../docs) 与 [README](../../README.zh-CN.md)。
+> Historical design record, not current behaviour. See [`docs/`](../../docs) and the [README](../../README.md).
+
 > 状态：Approved for implementation  
 > 对应需求：`01-requirements.md`  
 > 平台：Windows 10 22H2 / Windows 11，x64  
@@ -12,7 +15,7 @@
 1. **功能等价**：睡眠阻止、合盖保持、显示模式、定时/无限、全局快捷键、高级空闲规避、电源切换重放、异常恢复。
 2. **系统安全**：任何路径都不遗留“合盖不睡眠”的全局电源设置。
 3. **交互等价**：macOS 菜单栏 popover 的视觉与信息密度在 Windows 托盘面板中复刻；右键菜单功能全集。
-4. **零网络**：不请求任何远程资源，不上报数据。
+4. **默认零网络**：不请求任何远程资源，不上报数据；仅用户显式启用的 Soft Stop 远程端点例外。
 5. **可验证**：核心状态机可单测，电源 helper 可独立探测，UI 可自动截图验收。
 
 ---
@@ -362,3 +365,35 @@ npm run dist      electron-builder：NSIS + portable（x64）
 5. **端到端 smoke**：启动 → 开启 → 计时（测试时长）→ 到时关闭 → 退出 → 设置文件与恢复文件正确。
 6. **电源真实写入**：本机无管理员权限且为 Modern Standby，无法自动验证；提供 `compatibility` 界面与手工验收步骤，在报告中如实标注未验证项。
 7. **评审**：代码走查、安全清单、失败矩阵、打包产物校验（哈希、启动、托盘、无任务栏）。
+
+---
+
+## 13. 软叫停子系统（v1.1.0 增量）
+
+```
+BatteryMonitor (controller tick, 5s)
+   │  power: ac / percent
+   ▼
+SoftStopEngine ── planSoftStopTick() ── shared/soft-stop.ts（纯函数状态机）
+   │        │
+   │        ├── AiActivityDetector (ai-detect.ts)
+   │        │      tasklist + netstat + Get-NetAdapter + loopback probes
+   │        │      → 进程/端口/吞吐量；不读内容
+   │        │
+   │        ├── SoftStopSender (soft-stop-sender.ts)
+   │        │      HTTP / Webhook / CLI；远程闸门、dry-run、DPAPI key
+   │        │
+   │        └── GuiAgent (gui-agent.ts)
+   │               helper uia.scan / uia.act / uia.record.*
+   │               shared/gui.ts 负责分类、评分、profile 匹配
+   ▼
+Protective sleep: controller.deactivate('soft-stop') → helper.suspend()
+```
+
+- **纯函数边界**：阈值决策、周期重置、模板渲染、GUI 分类都在 `shared/`，可用 Vitest 覆盖； Electron 层只做 I/O。
+- **周期持久化**：`soft-stop-cycle.json` 绑定 `session.startedAt`，会话重启不会误触发；审计 `soft-stop-audit.json` 最多保留 50 条。
+- **发送密钥**：`soft-stop/secret.bin` 使用 `safeStorage`（DPAPI）加密；未存储时返回空。
+- **GUI profile**：`soft-stop/gui-profiles.json` 保存进程、标题匹配与控件指纹；不保存坐标、时长或键盘输入。
+- **helper 协议**：新增 `uia.scan`、`uia.act`、`uia.record.start/stop/status`、`suspend`；沿用随机命名管道 + token + 父进程监视。
+- **DPI / STA**：UIA 调用在 STA 线程，进程声明 Per-Monitor DPI awareness，避免物理坐标与逻辑坐标错位。
+- **故障隔离**：检测/发送失败写入审计并进入 error 相位，不阻塞 1 秒主 tick；下次 tick 按冷却策略重试。

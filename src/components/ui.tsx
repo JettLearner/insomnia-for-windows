@@ -99,6 +99,12 @@ export function StatusRow({ label, value, tone = '' }: { label: string; value: s
   );
 }
 
-export function InlineNote({ children, tone = '' }: { children: ReactNode; tone?: 'error' | 'warn' | '' }) {
+export function InlineNote({
+  children,
+  tone = '',
+}: {
+  children: ReactNode;
+  tone?: 'error' | 'warn' | 'success' | '';
+}) {
   return <p className={`inline-note ${tone}`.trim()}>{children}</p>;
 }

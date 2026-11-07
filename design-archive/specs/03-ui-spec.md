@@ -1,5 +1,8 @@
 # InsomniaZ for Windows — UI 设计规范
 
+> **已归档 / Archived** — 历史设计记录，不代表当前行为。现行文档见 [`docs/`](../../docs) 与 [README](../../README.zh-CN.md)。
+> Historical design record, not current behaviour. See [`docs/`](../../docs) and the [README](../../README.md).
+
 > 视觉基线：App Store 官方 InsomniaZ 5.3 主面板截图（研究用，未随仓库分发）  
 > 原则：**复刻信息层级与气质，不复用受版权保护的图标/字体/素材**
 
@@ -150,7 +153,7 @@ Windows 版完整继承这套语言，并将 Windows 的 1px 边框、焦点框�
 ### 5.1 结构
 
 - 自定义标题栏 52px：左侧品牌小圆环 + “InsomniaZ”，中间空白可拖动，右侧最小化/关闭。
-- 左侧导航 216px：General / Shortcuts / Power / Battery / Appearance / Privacy / About。
+- 左侧导航 216px：General / Shortcuts / Power / Battery / Soft Stop / Appearance / Privacy / About。
 - 右侧内容 644px，最大宽度 560px，左对齐；底部留白 24px。
 - 窗口背景 `--bg-panel`，导航背景略深（`#15151E`），内容卡片 `--bg-panel-raised`，圆角 14px，1px 描边。
 - 无“保存”按钮；所有变更即时生效，右上角出现 1.2s “Saved” 微提示（aria-live polite）。
@@ -193,23 +196,39 @@ Windows 版完整继承这套语言，并将 Windows 的 1px 边框、焦点框�
 - Battery guard 开关；阈值滑块 5–50%，默认 20%；显示当前电量（来自 helper）。
 - Stop when unplugged 开关；说明“适合移动办公，合盖保护将随拔电结束”。
 - 当前电源状态行：AC / Battery 82% / Charging。
+- 软叫停开启时，本页低电量 guard 自动让位，并显示说明。
 
-### 5.6 Appearance
+### 5.6 Soft Stop
+
+五张卡片，右上角为相位芯片（Off / Idle / Monitoring / Detected / Sending / Sent / Cooldown / Sleeping / Error）：
+
+| 卡片 | 内容 |
+|---|---|
+| Battery handoff | 总开关、固定提示词（2000 字符上限、变量提示）、A/B 双滑块（A 10–95%，B 5–A−5，5% 步进）；提示词与阈值即时保存 |
+| Delivery target | Send through 下拉（自动/适配器/generic-gui）、端点、模型、API Key（DPAPI，显示已存/未存）、Allow remote endpoints、Dry run（默认开）、Send without confirmation |
+| GUI fallback | GUI 兜底开关、允许的进程白名单、扫描窗口（可选截取目标窗口）、候选标签预览与保存为 profile |
+| Teaching mode | 开始/停止录制（最长 5 分钟）、事件列表（点击/悬停、控件名、进程、建议标签下拉）、填写名称与标题匹配后保存 profile；已保存 profile 列表可删除 |
+| Verification | 发送测试提示词、检查 AI 活动（流式等级/本地运行时/吞吐量）、最近 50 条审计与刷新、Sleep now（两步确认） |
+
+- 录制时显示脉冲状态条与剩余时间；未开始录制时不轮询助手，避免无谓的提权。
+- 所有危险操作（休眠、删除 profile）都需要二次确认。
+
+### 5.7 Appearance
 
 - Theme 三选一；Accent 固定品牌紫（不开放色盘，保持识别度）。
 - Density：Comfortable / Compact（影响设置列表行高）。
 - 动画开关；语言快捷入口。
 
-### 5.7 Privacy
+### 5.8 Privacy
 
-- 明确声明：零收集、零网络、无账号、无分析。
+- 明确声明：零收集、零遥测、无账号、无分析；网络默认只留在本机，软叫停远程端点需显式开启。
 - “Open data folder” / “Export diagnostics” 按钮。
-- 说明日志内容与保留策略。
+- 说明日志内容与保留策略；软叫停审计不记录提示词正文与 API Key。
 - 关于权限：为什么会请求管理员、何时请求、如何撤销。
 
-### 5.8 About
+### 5.9 About
 
-- 品牌圆环 + InsomniaZ 版本 1.0.0 (Windows port)。
+- 品牌圆环 + InsomniaZ 版本 1.1.0 (Windows port)。
 - “Inspired by InsomniaZ for macOS by Pawan Dixit. This is an independent, unaffiliated port.”
 - 链接：原应用 App Store 页、开发者网站、许可（MIT）。
 - 系统信息：Electron / Chromium / Node 版本。

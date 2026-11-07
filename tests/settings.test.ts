@@ -33,6 +33,18 @@ describe('sanitizeSettings', () => {
       batteryGuardEnabled: false,
       batteryThreshold: 35,
       stopOnBattery: true,
+      softStopEnabled: true,
+      softStopPrompt: '  Stop now.\nKeep state.  ',
+      softStopThreshold: 40,
+      softStopSleepThreshold: 15,
+      softStopAllowRemote: true,
+      softStopDryRun: false,
+      softStopAutoSend: true,
+      softStopGuiEnabled: true,
+      softStopGuiAllowlist: [' Qoder.exe ', 'qoder.exe', 'vscode', ''],
+      softStopProfileId: 'ollama',
+      softStopHttpBase: 'http://127.0.0.1:11434/',
+      softStopHttpModel: ' llama3 ',
       activityIntervalSec: 120,
       showNotifications: false,
       closePanelOnBlur: false,
@@ -56,6 +68,18 @@ describe('sanitizeSettings', () => {
       batteryGuardEnabled: false,
       batteryThreshold: 35,
       stopOnBattery: true,
+      softStopEnabled: true,
+      softStopPrompt: 'Stop now.\nKeep state.',
+      softStopThreshold: 40,
+      softStopSleepThreshold: 15,
+      softStopAllowRemote: true,
+      softStopDryRun: false,
+      softStopAutoSend: true,
+      softStopGuiEnabled: true,
+      softStopGuiAllowlist: ['Qoder.exe', 'vscode'],
+      softStopProfileId: 'ollama',
+      softStopHttpBase: 'http://127.0.0.1:11434',
+      softStopHttpModel: 'llama3',
       activityIntervalSec: 120,
       showNotifications: false,
       closePanelOnBlur: false,
@@ -145,6 +169,101 @@ describe('sanitizeSettings', () => {
     expect(Object.keys(parsed).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
     expect(Object.hasOwn(parsed, 'extra')).toBe(false);
     expect(Object.hasOwn(parsed, 'poisoned')).toBe(false);
+  });
+
+  describe('soft stop', () => {
+    it('ships with safe defaults', () => {
+      const parsed = sanitizeSettings({});
+      expect(parsed.softStopEnabled).toBe(false);
+      expect(parsed.softStopDryRun).toBe(true);
+      expect(parsed.softStopAutoSend).toBe(false);
+      expect(parsed.softStopGuiEnabled).toBe(false);
+      expect(parsed.softStopAllowRemote).toBe(false);
+      expect(parsed.softStopProfileId).toBeNull();
+      expect(parsed.softStopPrompt).toBe(DEFAULT_SETTINGS.softStopPrompt);
+      expect(parsed.softStopThreshold).toBe(30);
+      expect(parsed.softStopSleepThreshold).toBe(10);
+    });
+
+    it('cleans control characters and caps the prompt at 2000 characters', () => {
+      const parsed = sanitizeSettings({ softStopPrompt: 'a\u0000b\r\nc\tD'.padEnd(2500, 'x') });
+      expect(parsed.softStopPrompt.startsWith('ab\nc\tD')).toBe(true);
+      expect(parsed.softStopPrompt.length).toBe(2000);
+    });
+
+    it('replaces a blank prompt with the documented default', () => {
+      for (const softStopPrompt of ['', '   \n\t ', null, 42, undefined]) {
+        expect(sanitizeSettings({ softStopPrompt }).softStopPrompt).toBe(
+          DEFAULT_SETTINGS.softStopPrompt,
+        );
+      }
+    });
+
+    it('keeps A above B with at least a five point gap', () => {
+      expect(
+        sanitizeSettings({ softStopThreshold: 5, softStopSleepThreshold: 5 }),
+      ).toMatchObject({ softStopThreshold: 10, softStopSleepThreshold: 5 });
+      expect(
+        sanitizeSettings({ softStopThreshold: 30, softStopSleepThreshold: 80 }),
+      ).toMatchObject({ softStopThreshold: 30, softStopSleepThreshold: 25 });
+      expect(
+        sanitizeSettings({ softStopThreshold: 95, softStopSleepThreshold: 1 }),
+      ).toMatchObject({ softStopThreshold: 95, softStopSleepThreshold: 5 });
+      expect(
+        sanitizeSettings({ softStopThreshold: Number.NaN, softStopSleepThreshold: Number.NaN }),
+      ).toMatchObject({ softStopThreshold: 30, softStopSleepThreshold: 10 });
+      expect(
+        sanitizeSettings({ softStopThreshold: 40.6, softStopSleepThreshold: 20.4 }),
+      ).toMatchObject({ softStopThreshold: 41, softStopSleepThreshold: 20 });
+    });
+
+    it('rejects endpoints that could leak credentials or misuse the request', () => {
+      for (const softStopHttpBase of [
+        'https://user:pass@example.com',
+        'ftp://127.0.0.1:11434',
+        'http://127.0.0.1:11434/?x=1',
+        'http://127.0.0.1:11434/#frag',
+        'not a url',
+        'javascript:alert(1)',
+        42,
+      ]) {
+        expect(sanitizeSettings({ softStopHttpBase }).softStopHttpBase).toBe('');
+      }
+      expect(sanitizeSettings({ softStopHttpBase: 'http://localhost:1234/v1/' }).softStopHttpBase).toBe(
+        'http://localhost:1234/v1',
+      );
+      expect(sanitizeSettings({ softStopHttpBase: 'http://192.168.1.2:8000' }).softStopHttpBase).toBe(
+        'http://192.168.1.2:8000',
+      );
+    });
+
+    it('caps, trims and dedupes the GUI allowlist', () => {
+      const allowlist = Array.from({ length: 40 }, (_, index) => ` App${index}.exe `);
+      const parsed = sanitizeSettings({ softStopGuiAllowlist: allowlist });
+      expect(parsed.softStopGuiAllowlist).toHaveLength(32);
+      expect(parsed.softStopGuiAllowlist[0]).toBe('App0.exe');
+      expect(
+        sanitizeSettings({ softStopGuiAllowlist: ['Qoder.exe', 'qoder.EXE', '  '] })
+          .softStopGuiAllowlist,
+      ).toEqual(['Qoder.exe']);
+    });
+
+    it('accepts only simple adapter ids', () => {
+      for (const softStopProfileId of ['ollama', 'generic-openai', 'my.agent_1', '__proto__', 'has space', 'x'.repeat(81), 42]) {
+        const parsed = sanitizeSettings({ softStopProfileId });
+        if (softStopProfileId === 'ollama' || softStopProfileId === 'generic-openai' || softStopProfileId === 'my.agent_1') {
+          expect(parsed.softStopProfileId).toBe(softStopProfileId);
+        } else {
+          expect(parsed.softStopProfileId).toBeNull();
+        }
+      }
+    });
+
+    it('trims and caps the model name', () => {
+      expect(sanitizeSettings({ softStopHttpModel: '  llama3:8b  ' }).softStopHttpModel).toBe('llama3:8b');
+      expect(sanitizeSettings({ softStopHttpModel: 'x'.repeat(300) }).softStopHttpModel).toHaveLength(200);
+      expect(sanitizeSettings({ softStopHttpModel: 'bad\u0000name' }).softStopHttpModel).toBe('badname');
+    });
   });
 });
 

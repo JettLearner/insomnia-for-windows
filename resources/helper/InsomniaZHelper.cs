@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -10,16 +11,18 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
+using System.Windows.Automation;
+using Accessibility;
 
 [assembly: AssemblyTitle("InsomniaZ Power Helper")]
-[assembly: AssemblyDescription("Keeps Windows awake and manages the lid power policy for InsomniaZ.")]
+[assembly: AssemblyDescription("Keeps Windows awake, manages the lid power policy and drives the GUI fallback for InsomniaZ.")]
 [assembly: AssemblyProduct("InsomniaZ")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 
 internal static class InsomniaZHelper
 {
-    private const string Version = "1.0.0";
+    private const string Version = "1.1.0";
     private const uint ES_CONTINUOUS = 0x80000000u;
     private const uint ES_SYSTEM_REQUIRED = 0x00000001u;
     private const uint ES_DISPLAY_REQUIRED = 0x00000002u;
@@ -34,6 +37,8 @@ internal static class InsomniaZHelper
 
     private static int Main(string[] args)
     {
+        try { SetProcessDpiAwarenessContext(new IntPtr(-4)); }
+        catch { try { SetProcessDPIAware(); } catch { } }
         try { Console.OutputEncoding = Encoding.UTF8; } catch { }
         var options = ParseArgs(args);
         _logPath = Get(options, "log");
@@ -423,6 +428,49 @@ internal static class InsomniaZHelper
                     bool ok = RecoverFromFile(out code, out message);
                     Send(Response(id, ok, StatusData(), ok ? null : Error(code, message)));
                 }
+                else if (cmd == "uia.scan")
+                {
+                    Send(Response(id, true, GuiAutomation.Scan(args), null));
+                }
+                else if (cmd == "uia.act")
+                {
+                    Send(Response(id, true, GuiAutomation.Act(args), null));
+                }
+                else if (cmd == "uia.record.start")
+                {
+                    Send(Response(id, true, MouseRecorder.Start(args), null));
+                }
+                else if (cmd == "uia.record.stop")
+                {
+                    Send(Response(id, true, MouseRecorder.Stop(), null));
+                }
+                else if (cmd == "uia.record.status")
+                {
+                    Send(Response(id, true, MouseRecorder.Status(), null));
+                }
+                else if (cmd == "suspend")
+                {
+                    if (!string.Equals(GetString(args, "reason"), "soft-stop", StringComparison.Ordinal))
+                    {
+                        throw new HelperException("INVALID_ARGUMENT", "suspend requires reason=soft-stop.");
+                    }
+                    Send(Response(id, true, new Dictionary<string, object> { { "accepted", true } }, null));
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try
+                        {
+                            Thread.Sleep(700);
+                            Log("warn", "soft stop requested protective sleep");
+                            SetThreadExecutionState(ES_CONTINUOUS);
+                            bool ok = SetSuspendState(false, true, false);
+                            if (!ok) Log("warn", "SetSuspendState failed; win32=" + Marshal.GetLastWin32Error());
+                        }
+                        catch (Exception ex)
+                        {
+                            Log("error", "protective sleep failed: " + ex.Message);
+                        }
+                    });
+                }
                 else if (cmd == "shutdown")
                 {
                     Send(Response(id, true, new Dictionary<string, object> { { "bye", true } }, null));
@@ -432,6 +480,11 @@ internal static class InsomniaZHelper
                 {
                     Send(Response(id, false, null, Error("INVALID_ARGUMENT", "Unknown command: " + cmd)));
                 }
+            }
+            catch (HelperException hex)
+            {
+                Log("warn", "command " + cmd + " rejected: " + hex.Code + " " + hex.Message);
+                Send(Response(id, false, null, Error(hex.Code, hex.Message)));
             }
             catch (Exception ex)
             {
@@ -947,6 +1000,1212 @@ internal static class InsomniaZHelper
         }
     }
 
+    private sealed class HelperException : Exception
+    {
+        public readonly string Code;
+
+        public HelperException(string code, string message) : base(message)
+        {
+            Code = code;
+        }
+    }
+
+    /// <summary>
+    /// UI Automation and the MSAA bridge must run on an STA thread; on an MTA
+    /// thread the proxies expose only the window chrome.
+    /// </summary>
+    internal static class UiaDispatcher
+    {
+        private sealed class WorkItem
+        {
+            public Func<object> Work;
+            public object Result;
+            public Exception Error;
+            public ManualResetEventSlim Done;
+        }
+
+        private static readonly BlockingCollection<WorkItem> Queue = new BlockingCollection<WorkItem>();
+        private static readonly object StartLock = new object();
+        private static Thread _thread;
+
+        public static T Run<T>(Func<T> work, int timeoutMs)
+        {
+            if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) return work();
+            EnsureThread();
+            var item = new WorkItem();
+            item.Work = delegate { return work(); };
+            item.Done = new ManualResetEventSlim(false);
+            Queue.Add(item);
+            if (!item.Done.Wait(timeoutMs))
+            {
+                throw new HelperException("UIA_TIMEOUT", "The UI Automation worker did not respond in time.");
+            }
+            if (item.Error != null)
+            {
+                HelperException known = item.Error as HelperException;
+                if (known != null) throw known;
+                throw new HelperException("UIA_FAILED", item.Error.Message);
+            }
+            return (T)item.Result;
+        }
+
+        private static void EnsureThread()
+        {
+            if (_thread != null) return;
+            lock (StartLock)
+            {
+                if (_thread != null) return;
+                var thread = new Thread(Loop);
+                thread.IsBackground = true;
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Name = "InsomniaZUia";
+                thread.Start();
+                _thread = thread;
+            }
+        }
+
+        private static void Loop()
+        {
+            try { CoInitializeEx(IntPtr.Zero, 0x2); } catch { }
+            foreach (WorkItem item in Queue.GetConsumingEnumerable())
+            {
+                try { item.Result = item.Work(); }
+                catch (Exception ex) { item.Error = ex; }
+                finally { item.Done.Set(); }
+            }
+        }
+    }
+
+    private sealed class WindowEntry
+    {
+        public IntPtr Hwnd;
+        public int Pid;
+        public string Process;
+        public string Title;
+        public string ClassName;
+        public IntRect Rect;
+        public bool Foreground;
+    }
+
+    private sealed class CachedElement
+    {
+        public AutomationElement Element;
+        public DateTime At;
+        public string WindowRef;
+    }
+
+    private sealed class IntRect
+    {
+        public int X;
+        public int Y;
+        public int W;
+        public int H;
+
+        public Dictionary<string, object> ToJson()
+        {
+            return new Dictionary<string, object> {
+                { "x", X }, { "y", Y }, { "w", W }, { "h", H }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Read-only UI Automation metadata scan plus the narrow set of actions the
+    /// GUI fallback needs. Element values are never read; only names, ids and
+    /// rectangles leave the helper, so no typed text is captured.
+    /// </summary>
+    internal static class GuiAutomation
+    {
+        private const int MaxNameLength = 200;
+        private const int MaxAnchorLength = 160;
+        private static readonly object RefLock = new object();
+        private static readonly Dictionary<string, CachedElement> Refs = new Dictionary<string, CachedElement>();
+        private static readonly TimeSpan RefTtl = TimeSpan.FromMinutes(3);
+        private static int _refSeq;
+
+        private static readonly string[] InterestingTypes = new string[] {
+            "Edit", "Document", "Button", "Hyperlink", "ListItem", "TabItem", "TreeItem", "MenuItem"
+        };
+
+        private const int RoleText = 0x2A;
+        private const int RolePushButton = 0x2B;
+        private const int RoleLink = 0x1E;
+        private const int RoleListItem = 0x22;
+        private const int RolePageTab = 0x25;
+        private const int RoleComboBox = 0x2E;
+        private const int RoleOutlineItem = 0x24;
+        private const int RoleMenuItem = 0x0C;
+        private const int RoleDocument = 0x0F;
+        private const int RoleButtonDropDown = 0x38;
+
+        public static Dictionary<string, object> Scan(Dictionary<string, object> args)
+        {
+            return UiaDispatcher.Run<Dictionary<string, object>>(delegate { return ScanCore(args); }, 90000);
+        }
+
+        private static Dictionary<string, object> ScanCore(Dictionary<string, object> args)
+        {
+            string processFilter = NormalizeProcess(GetString(args, "processName"));
+            string titleFilter = GetString(args, "windowTitle");
+            int maxWindows = Clamp(GetInt(args, "maxWindows", 6), 1, 10);
+            int maxElements = Clamp(GetInt(args, "maxElements", 220), 20, 600);
+
+            List<WindowEntry> all = EnumerateWindows(titleFilter, processFilter);
+            all.Sort(delegate(WindowEntry a, WindowEntry b)
+            {
+                if (a.Foreground != b.Foreground) return a.Foreground ? -1 : 1;
+                int areaA = a.Rect.W * a.Rect.H;
+                int areaB = b.Rect.W * b.Rect.H;
+                if (areaA != areaB) return areaB.CompareTo(areaA);
+                return string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
+            });
+            if (all.Count > maxWindows) all.RemoveRange(maxWindows, all.Count - maxWindows);
+
+            lock (RefLock)
+            {
+                Refs.Clear();
+                _refSeq = 0;
+            }
+
+            var windows = new List<object>();
+            int index = 0;
+            foreach (WindowEntry window in all)
+            {
+                index++;
+                string windowRef = "w" + index;
+                Dictionary<string, object> entry = WindowDictionary(window);
+                entry["ref"] = windowRef;
+                var candidates = new List<object>();
+                var counts = new Dictionary<string, object> {
+                    { "edits", 0 }, { "documents", 0 }, { "buttons", 0 },
+                    { "listItems", 0 }, { "tabItems", 0 }, { "hyperlinks", 0 },
+                    { "editable", 0 }
+                };
+                try
+                {
+                    AutomationElement windowElement = AutomationElement.FromHandle(window.Hwnd);
+                    CollectCandidates(windowElement, window, windowRef, maxElements, candidates, counts);
+                    // Chromium/Electron enables its accessibility tree lazily, so the
+                    // first read after launch can come back empty.
+                    for (int retry = 0; retry < 2 && candidates.Count == 0; retry++)
+                    {
+                        Thread.Sleep(280);
+                        CollectCandidates(windowElement, window, windowRef, maxElements, candidates, counts);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    entry["error"] = ex.Message;
+                }
+                entry["candidates"] = candidates;
+                entry["candidateCount"] = candidates.Count;
+                entry["counts"] = counts;
+                windows.Add(entry);
+            }
+
+            var result = new Dictionary<string, object>();
+            result["scannedAt"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+            result["windowCount"] = windows.Count;
+            result["windows"] = windows;
+            return result;
+        }
+
+        public static Dictionary<string, object> Act(Dictionary<string, object> args)
+        {
+            return UiaDispatcher.Run<Dictionary<string, object>>(delegate { return ActCore(args); }, 90000);
+        }
+
+        private static Dictionary<string, object> ActCore(Dictionary<string, object> args)
+        {
+            string action = (GetString(args, "action") ?? string.Empty).Trim().ToLowerInvariant();
+            string refId = GetString(args, "ref");
+            string windowRef = GetString(args, "window");
+            long hwndValue = GetLong(args, "hwnd", 0);
+            if (action.Length == 0) throw new HelperException("INVALID_ARGUMENT", "action is required.");
+            if (string.IsNullOrEmpty(refId)) throw new HelperException("INVALID_ARGUMENT", "ref is required.");
+
+            CachedElement cached;
+            lock (RefLock)
+            {
+                Refs.TryGetValue(refId, out cached);
+                if (cached != null && DateTime.UtcNow - cached.At > RefTtl)
+                {
+                    Refs.Remove(refId);
+                    cached = null;
+                }
+            }
+            if (cached == null) throw new HelperException("STALE_ELEMENT", "The element reference is no longer available; scan again.");
+            if (!string.IsNullOrEmpty(windowRef) && cached.WindowRef != windowRef)
+            {
+                throw new HelperException("ELEMENT_WINDOW_MISMATCH", "The element does not belong to the requested window.");
+            }
+
+            AutomationElement element = cached.Element;
+            System.Windows.Rect bounds;
+            try { bounds = element.Current.BoundingRectangle; }
+            catch (Exception ex) { throw new HelperException("STALE_ELEMENT", "The element disappeared: " + ex.Message); }
+            if (bounds.IsEmpty || bounds.Width < 2 || bounds.Height < 2)
+            {
+                throw new HelperException("ELEMENT_NOT_VISIBLE", "The element has no usable bounds.");
+            }
+
+            IntPtr hwnd = hwndValue > 0 ? new IntPtr(hwndValue) : IntPtr.Zero;
+            if (hwnd == IntPtr.Zero)
+            {
+                POINT center;
+                center.x = (int)Math.Round(bounds.Left + bounds.Width / 2.0);
+                center.y = (int)Math.Round(bounds.Top + bounds.Height / 2.0);
+                hwnd = GetAncestor(WindowFromPoint(center), 2);
+            }
+            if (hwnd == IntPtr.Zero) throw new HelperException("WINDOW_NOT_FOUND", "Could not resolve the target window.");
+
+            IntRect windowRect;
+            if (!TryGetWindowRect(hwnd, out windowRect))
+            {
+                throw new HelperException("WINDOW_NOT_FOUND", "The target window no longer exists.");
+            }
+            int centerX = (int)Math.Round(bounds.Left + bounds.Width / 2.0);
+            int centerY = (int)Math.Round(bounds.Top + bounds.Height / 2.0);
+            if (centerX < windowRect.X || centerY < windowRect.Y
+                || centerX > windowRect.X + windowRect.W || centerY > windowRect.Y + windowRect.H)
+            {
+                throw new HelperException("ELEMENT_OUTSIDE_WINDOW", "The element is no longer inside the target window.");
+            }
+
+            var result = new Dictionary<string, object>();
+            result["action"] = action;
+            result["ref"] = refId;
+            result["hwnd"] = hwnd.ToInt64();
+
+            switch (action)
+            {
+                case "focus":
+                    BringToForeground(hwnd);
+                    element.SetFocus();
+                    result["method"] = "focus";
+                    break;
+                case "setvalue":
+                    result["method"] = SetElementText(element, hwnd, GetString(args, "text") ?? string.Empty);
+                    result["length"] = (GetString(args, "text") ?? string.Empty).Length;
+                    break;
+                case "invoke":
+                    BringToForeground(hwnd);
+                    result["method"] = InvokeElement(element, hwnd);
+                    break;
+                case "click":
+                    BringToForeground(hwnd);
+                    ClickElement(element, hwnd);
+                    result["method"] = "click";
+                    break;
+                case "select":
+                    BringToForeground(hwnd);
+                    result["method"] = SelectElement(element, hwnd);
+                    break;
+                default:
+                    throw new HelperException("INVALID_ARGUMENT", "Unsupported action: " + action);
+            }
+            return result;
+        }
+
+        private static string SetElementText(AutomationElement element, IntPtr hwnd, string text)
+        {
+            BringToForeground(hwnd);
+            object pattern;
+            if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+            {
+                var value = (ValuePattern)pattern;
+                if (value.Current.IsReadOnly) throw new HelperException("ELEMENT_READ_ONLY", "The input element is read-only.");
+                value.SetValue(text);
+                return "value";
+            }
+            try { element.SetFocus(); } catch { }
+            Thread.Sleep(80);
+            ClickElement(element, hwnd);
+            Thread.Sleep(120);
+            if (GetForegroundWindow() != hwnd)
+            {
+                throw new HelperException("WINDOW_NOT_FOREGROUND", "The target window lost focus before text could be entered.");
+            }
+            SendVirtualKey(0x11, false); // Ctrl down
+            SendVirtualKey(0x41, false); // A
+            SendVirtualKey(0x41, true);
+            SendVirtualKey(0x11, true);
+            SendVirtualKey(0x2E, false); // Delete existing draft
+            SendVirtualKey(0x2E, true);
+            Thread.Sleep(40);
+            // Enter would submit the chat message early, so newlines become spaces.
+            string payload = text.Replace("\r", " ").Replace("\n", " ");
+            SendUnicodeText(payload);
+            // Give the UI thread time to drain the WM_CHAR queue; a following
+            // UIA invoke can otherwise overtake the last keystrokes.
+            Thread.Sleep(120);
+            for (int attempt = 0; attempt < 6; attempt++)
+            {
+                string current = ReadElementText(element);
+                if (current != null && (current == payload || current.EndsWith(Tail(payload, 16))))
+                {
+                    return "type";
+                }
+                Thread.Sleep(80);
+            }
+            return "type";
+        }
+
+        private static string Tail(string value, int max)
+        {
+            return value.Length <= max ? value : value.Substring(value.Length - max);
+        }
+
+        private static string ReadElementText(AutomationElement element)
+        {
+            try
+            {
+                object pattern;
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+                {
+                    return ((ValuePattern)pattern).Current.Value;
+                }
+                if (element.TryGetCurrentPattern(TextPattern.Pattern, out pattern))
+                {
+                    return ((TextPattern)pattern).DocumentRange.GetText(-1);
+                }
+            }
+            catch
+            {
+                // Reading is best effort; typing already happened.
+            }
+            return null;
+        }
+
+        private static string InvokeElement(AutomationElement element, IntPtr hwnd)
+        {
+            object pattern;
+            if (element.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+            {
+                try
+                {
+                    ((InvokePattern)pattern).Invoke();
+                    return "invoke";
+                }
+                catch (Exception ex)
+                {
+                    Log("warn", "InvokePattern failed; falling back to a click: " + ex.Message);
+                }
+            }
+            ClickElement(element, hwnd);
+            return "click";
+        }
+
+        private static string SelectElement(AutomationElement element, IntPtr hwnd)
+        {
+            object pattern;
+            if (element.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+            {
+                try
+                {
+                    ((SelectionItemPattern)pattern).Select();
+                    return "select";
+                }
+                catch (Exception ex)
+                {
+                    Log("warn", "SelectionItemPattern failed; falling back to a click: " + ex.Message);
+                }
+            }
+            ClickElement(element, hwnd);
+            return "click";
+        }
+
+        private static void ClickElement(AutomationElement element, IntPtr hwnd)
+        {
+            System.Windows.Rect bounds = element.Current.BoundingRectangle;
+            if (bounds.IsEmpty || bounds.Width < 2 || bounds.Height < 2)
+            {
+                throw new HelperException("ELEMENT_NOT_VISIBLE", "The element has no usable bounds.");
+            }
+            if (GetForegroundWindow() != hwnd)
+            {
+                throw new HelperException("WINDOW_NOT_FOREGROUND", "Refusing to click while the target window is not in front.");
+            }
+            int x = (int)Math.Round(bounds.Left + bounds.Width / 2.0);
+            int y = (int)Math.Round(bounds.Top + bounds.Height / 2.0);
+            POINT previous;
+            bool hadCursor = GetCursorPos(out previous);
+            if (!SetCursorPos(x, y)) throw new HelperException("CLICK_FAILED", "Could not move the pointer.");
+            Thread.Sleep(30);
+            SendMouse(0x0002);
+            SendMouse(0x0004);
+            Thread.Sleep(70);
+            if (hadCursor) SetCursorPos(previous.x, previous.y);
+        }
+
+        private static void BringToForeground(IntPtr hwnd)
+        {
+            if (GetForegroundWindow() == hwnd) return;
+            if (IsIconic(hwnd)) ShowWindow(hwnd, 9);
+            uint ignored;
+            uint foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), out ignored);
+            uint currentThread = GetCurrentThreadId();
+            bool attached = false;
+            if (foregroundThread != 0 && foregroundThread != currentThread)
+            {
+                attached = AttachThreadInput(currentThread, foregroundThread, true);
+            }
+            try
+            {
+                SetForegroundWindow(hwnd);
+            }
+            finally
+            {
+                if (attached) AttachThreadInput(currentThread, foregroundThread, false);
+            }
+            Thread.Sleep(180);
+            if (GetForegroundWindow() != hwnd)
+            {
+                throw new HelperException("WINDOW_NOT_FOREGROUND", "Windows refused to bring the target window to the front.");
+            }
+        }
+
+        private static void CollectCandidates(AutomationElement windowElement, WindowEntry window, string windowRef,
+            int maxElements, List<object> output, Dictionary<string, object> counts)
+        {
+            var typeCondition = new OrCondition(
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Document),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Hyperlink),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Group),
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Pane));
+            var condition = new AndCondition(typeCondition,
+                new PropertyCondition(AutomationElement.IsOffscreenProperty, false));
+            AutomationElementCollection found = windowElement.FindAll(TreeScope.Descendants, condition);
+            int scanned = 0;
+            Stopwatch clock = Stopwatch.StartNew();
+            foreach (AutomationElement element in found)
+            {
+                if (output.Count >= maxElements || scanned >= maxElements * 6 || clock.ElapsedMilliseconds > 6000) break;
+                scanned++;
+                try
+                {
+                    AutomationElement.AutomationElementInformation current = element.Current;
+                    string typeName = ControlTypeName(current.ControlType);
+                    Log("info", "uia elem type=" + typeName);
+                    System.Windows.Rect bounds = current.BoundingRectangle;
+                    if (bounds.IsEmpty || bounds.Width < 4 || bounds.Height < 4) continue;
+                    int centerX = (int)Math.Round(bounds.Left + bounds.Width / 2.0);
+                    int centerY = (int)Math.Round(bounds.Top + bounds.Height / 2.0);
+                    if (centerX < window.Rect.X || centerY < window.Rect.Y
+                        || centerX > window.Rect.X + window.Rect.W || centerY > window.Rect.Y + window.Rect.H)
+                    {
+                        continue;
+                    }
+
+                    string name = SafeText(current.Name, MaxNameLength);
+                    string automationId = SafeText(current.AutomationId, MaxAnchorLength);
+                    string className = SafeText(current.ClassName, MaxAnchorLength);
+                    bool container = typeName == "Pane" || typeName == "Text" || typeName == "Custom"
+                        || typeName == "Group";
+
+                    bool editable = false;
+                    bool invokable = false;
+                    bool selectable = false;
+                    bool selected = false;
+                    bool expandable = false;
+                    object pattern;
+                    if (typeName == "Edit" || typeName == "Document")
+                    {
+                        if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+                        {
+                            try { editable = !((ValuePattern)pattern).Current.IsReadOnly; } catch { }
+                        }
+                        else
+                        {
+                            // Rich editors expose a focusable Document without
+                            // ValuePattern; SetElementText can still type into it.
+                            try { editable = current.IsEnabled && current.IsKeyboardFocusable; } catch { }
+                        }
+                    }
+                    if (typeName == "Group" || typeName == "Pane" || typeName == "Custom")
+                    {
+                        if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+                        {
+                            try { if (!((ValuePattern)pattern).Current.IsReadOnly) editable = true; } catch { }
+                        }
+                        // ProseMirror/TipTap/Monaco-style editors surface as a
+                        // focusable Group with no ValuePattern at all.
+                        if (!editable && IsEditorSurface(className, automationId))
+                        {
+                            try { editable = current.IsEnabled && current.IsKeyboardFocusable; } catch { }
+                        }
+                    }
+                    if (typeName == "Button" && element.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) invokable = true;
+                    if (typeName == "Button" && element.TryGetCurrentPattern(ExpandCollapsePattern.Pattern, out pattern)) expandable = true;
+                    if ((typeName == "ListItem" || typeName == "TabItem")
+                        && element.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+                    {
+                        selectable = true;
+                        try { selected = ((SelectionItemPattern)pattern).Current.IsSelected; } catch { }
+                    }
+
+                    int legacyRole = -1;
+                    if (container)
+                    {
+                        legacyRole = LegacyRole(element);
+                        if (legacyRole == RoleText) editable = true;
+                        if (legacyRole == RoleDocument) editable = true;
+                        if (legacyRole == RolePushButton || legacyRole == RoleButtonDropDown) expandable = expandable || legacyRole == RoleButtonDropDown;
+                        if (legacyRole == RoleListItem || legacyRole == RolePageTab || legacyRole == RoleOutlineItem) selectable = true;
+                        bool useful = editable || invokable || legacyRole == RolePushButton || legacyRole == RoleLink
+                            || legacyRole == RoleMenuItem || legacyRole == RoleListItem || legacyRole == RolePageTab
+                            || legacyRole == RoleComboBox || legacyRole == RoleOutlineItem || legacyRole == RoleButtonDropDown;
+                        if (!useful) continue;
+                    }
+                    if (name.Length == 0 && automationId.Length == 0 && typeName != "Edit"
+                        && typeName != "Document" && !editable) continue;
+
+                    string refId;
+                    lock (RefLock)
+                    {
+                        _refSeq++;
+                        refId = "e" + _refSeq;
+                        Refs[refId] = new CachedElement { Element = element, At = DateTime.UtcNow, WindowRef = windowRef };
+                    }
+
+                    var item = new Dictionary<string, object> {
+                        { "ref", refId },
+                        { "name", name },
+                        { "automationId", automationId },
+                        { "className", className },
+                        { "controlType", typeName },
+                        { "rect", RectDictionary(bounds) },
+                        { "enabled", current.IsEnabled },
+                        { "keyboardFocusable", current.IsKeyboardFocusable },
+                        { "editable", editable },
+                        { "invokable", invokable },
+                        { "selectable", selectable },
+                        { "selected", selected },
+                        { "expandable", expandable }
+                    };
+                    if (legacyRole >= 0) item["legacyRole"] = legacyRole;
+                    output.Add(item);
+                    Increment(counts, typeName, editable);
+                }
+                catch
+                {
+                    // Elements can vanish mid-scan; skip them.
+                }
+            }
+            Log("info", "uia scan window done candidates=" + output.Count + " scanned=" + scanned);
+        }
+
+        private static bool IsEditorSurface(string className, string automationId)
+        {
+            string haystack = (className + " " + automationId).ToLowerInvariant();
+            return haystack.Contains("prosemirror") || haystack.Contains("tiptap")
+                || haystack.Contains("codemirror") || haystack.Contains("monaco")
+                || haystack.Contains("contenteditable") || haystack.Contains("rich-text")
+                || haystack.Contains("rich_text") || haystack.Contains("lexical")
+                || haystack.Contains("slate-editor") || haystack.Contains("chat-input")
+                || haystack.Contains("chat_input") || haystack.Contains("composer");
+        }
+
+        private static int LegacyRole(AutomationElement element)
+        {
+            try
+            {
+                System.Windows.Rect rect = element.Current.BoundingRectangle;
+                if (rect.IsEmpty || rect.Width < 2 || rect.Height < 2) return -1;
+                int x = (int)Math.Round(rect.Left + rect.Width / 2.0);
+                int y = (int)Math.Round(rect.Top + rect.Height / 2.0);
+                return MsaaRoleAt(x, y);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        private static int MsaaRoleAt(int x, int y)
+        {
+            Accessibility.IAccessible accessible = null;
+            try
+            {
+                POINT point;
+                point.x = x;
+                point.y = y;
+                object child = 0;
+                int hr = AccessibleObjectFromPoint(point, out accessible, ref child);
+                if (hr != 0 || accessible == null) return -1;
+                object role = accessible.get_accRole(child);
+                if (role == null) return -1;
+                return Convert.ToInt32(role, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return -1;
+            }
+            finally
+            {
+                try { if (accessible != null) Marshal.ReleaseComObject(accessible); } catch { }
+            }
+        }
+
+        private static void Increment(Dictionary<string, object> counts, string typeName, bool editable)
+        {
+            string key = null;
+            if (typeName == "Edit") key = "edits";
+            else if (typeName == "Document") key = "documents";
+            else if (typeName == "Button") key = "buttons";
+            else if (typeName == "ListItem") key = "listItems";
+            else if (typeName == "TabItem") key = "tabItems";
+            else if (typeName == "Hyperlink") key = "hyperlinks";
+            if (key == null) return;
+            counts[key] = Convert.ToInt32(counts[key], CultureInfo.InvariantCulture) + 1;
+            if (editable) counts["editable"] = Convert.ToInt32(counts["editable"], CultureInfo.InvariantCulture) + 1;
+        }
+
+        private static List<WindowEntry> EnumerateWindows(string titleFilter, string processFilter)
+        {
+            var result = new List<WindowEntry>();
+            int ownPid = Process.GetCurrentProcess().Id;
+            EnumWindows(delegate(IntPtr hwnd, IntPtr lParam)
+            {
+                try
+                {
+                    if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return true;
+                    int cloaked;
+                    if (DwmGetWindowAttribute(hwnd, 14, out cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
+                    int length = GetWindowTextLength(hwnd);
+                    if (length <= 0) return true;
+                    var buffer = new StringBuilder(length + 2);
+                    GetWindowText(hwnd, buffer, buffer.Capacity);
+                    string title = buffer.ToString().Trim();
+                    if (title.Length == 0) return true;
+                    if (!string.IsNullOrEmpty(titleFilter)
+                        && title.IndexOf(titleFilter, StringComparison.OrdinalIgnoreCase) < 0) return true;
+                    IntRect rect;
+                    if (!TryGetWindowRect(hwnd, out rect) || rect.W < 160 || rect.H < 100) return true;
+                    string windowClass = WindowClass(hwnd);
+                    if (string.Equals(windowClass, "Progman", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(windowClass, "WorkerW", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(windowClass, "Shell_TrayWnd", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(windowClass, "Shell_SecondaryTrayWnd", StringComparison.OrdinalIgnoreCase)) return true;
+                    uint pid;
+                    GetWindowThreadProcessId(hwnd, out pid);
+                    if (pid == 0 || (int)pid == ownPid) return true;
+                    string process = ProcessName((int)pid);
+                    if (!string.IsNullOrEmpty(processFilter) && !ProcessMatches(process, processFilter)) return true;
+                    result.Add(new WindowEntry {
+                        Hwnd = hwnd,
+                        Pid = (int)pid,
+                        Process = process,
+                        Title = SafeText(title, 300),
+                        ClassName = SafeText(windowClass, MaxAnchorLength),
+                        Rect = rect,
+                        Foreground = GetForegroundWindow() == hwnd
+                    });
+                }
+                catch
+                {
+                    // Skip windows that disappear while enumerating.
+                }
+                return true;
+            }, IntPtr.Zero);
+            return result;
+        }
+
+        internal static Dictionary<string, object> DescribePoint(int x, int y)
+        {
+            return UiaDispatcher.Run<Dictionary<string, object>>(delegate { return DescribePointCore(x, y); }, 30000);
+        }
+
+        private static Dictionary<string, object> DescribePointCore(int x, int y)
+        {
+            POINT point;
+            point.x = x;
+            point.y = y;
+            IntPtr hwnd = GetAncestor(WindowFromPoint(point), 2);
+            if (hwnd == IntPtr.Zero) return null;
+            string title = WindowTitle(hwnd);
+            if (title.Length == 0) return null;
+            string className = WindowClass(hwnd);
+            if (string.Equals(className, "Progman", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(className, "Shell_TrayWnd", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(className, "WorkerW", StringComparison.OrdinalIgnoreCase)) return null;
+            IntRect rect;
+            if (!TryGetWindowRect(hwnd, out rect)) return null;
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+
+            var window = new Dictionary<string, object> {
+                { "hwnd", hwnd.ToInt64() },
+                { "pid", (int)pid },
+                { "process", ProcessName((int)pid) },
+                { "title", SafeText(title, 300) },
+                { "className", SafeText(className, MaxAnchorLength) },
+                { "rect", rect.ToJson() },
+                { "foreground", GetForegroundWindow() == hwnd }
+            };
+
+            Dictionary<string, object> element = null;
+            try
+            {
+                AutomationElement hit = AutomationElement.FromPoint(new System.Windows.Point(x, y));
+                AutomationElement target = PickMeaningful(hit);
+                if (target != null) element = DescribeElement(target);
+            }
+            catch
+            {
+                // UIA can race with the target app; the window metadata is still useful.
+            }
+
+            var result = new Dictionary<string, object>();
+            result["window"] = window;
+            result["element"] = element;
+            result["point"] = new Dictionary<string, object> { { "x", x }, { "y", y } };
+            return result;
+        }
+
+        private static AutomationElement PickMeaningful(AutomationElement element)
+        {
+            if (element == null) return null;
+            AutomationElement current = element;
+            AutomationElement fallback = null;
+            for (int depth = 0; depth < 8 && current != null; depth++)
+            {
+                try
+                {
+                    string typeName = ControlTypeName(current.Current.ControlType);
+                    if (Array.IndexOf(InterestingTypes, typeName) >= 0) return current;
+                    if (typeName == "Pane" || typeName == "Custom" || typeName == "Text")
+                    {
+                        if (IsUsefulRole(LegacyRole(current))) return current;
+                    }
+                    if (fallback == null && (!string.IsNullOrEmpty(current.Current.Name)
+                        || !string.IsNullOrEmpty(current.Current.AutomationId))) fallback = current;
+                    current = TreeWalker.ControlViewWalker.GetParent(current);
+                }
+                catch
+                {
+                    break;
+                }
+            }
+            return fallback;
+        }
+
+        private static bool IsUsefulRole(int role)
+        {
+            return role == RoleText || role == RolePushButton || role == RoleLink || role == RoleListItem
+                || role == RolePageTab || role == RoleComboBox || role == RoleOutlineItem
+                || role == RoleMenuItem || role == RoleDocument || role == RoleButtonDropDown;
+        }
+
+        private static Dictionary<string, object> DescribeElement(AutomationElement element)
+        {
+            AutomationElement.AutomationElementInformation current = element.Current;
+            string typeName = ControlTypeName(current.ControlType);
+            string className = SafeText(current.ClassName, MaxAnchorLength);
+            bool editable = false;
+            bool invokable = false;
+            bool selectable = false;
+            bool selected = false;
+            bool expandable = false;
+            object pattern;
+            if (typeName == "Edit" || typeName == "Document")
+            {
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+                {
+                    try { editable = !((ValuePattern)pattern).Current.IsReadOnly; } catch { }
+                }
+                else
+                {
+                    try { editable = current.IsEnabled && current.IsKeyboardFocusable; } catch { }
+                }
+            }
+            if (typeName == "Group" || typeName == "Pane" || typeName == "Custom")
+            {
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+                {
+                    try { if (!((ValuePattern)pattern).Current.IsReadOnly) editable = true; } catch { }
+                }
+                if (!editable && IsEditorSurface(className, SafeText(current.AutomationId, MaxAnchorLength)))
+                {
+                    try { editable = current.IsEnabled && current.IsKeyboardFocusable; } catch { }
+                }
+            }
+            if (typeName == "Button" && element.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) invokable = true;
+            if (typeName == "Button" && element.TryGetCurrentPattern(ExpandCollapsePattern.Pattern, out pattern)) expandable = true;
+            if ((typeName == "ListItem" || typeName == "TabItem" || typeName == "TreeItem")
+                && element.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+            {
+                selectable = true;
+                try { selected = ((SelectionItemPattern)pattern).Current.IsSelected; } catch { }
+            }
+            int legacyRole = -1;
+            if (typeName == "Pane" || typeName == "Text" || typeName == "Custom" || typeName == "Group")
+            {
+                legacyRole = LegacyRole(element);
+                if (legacyRole == RoleText || legacyRole == RoleDocument) editable = true;
+                if (legacyRole == RoleListItem || legacyRole == RolePageTab || legacyRole == RoleOutlineItem) selectable = true;
+                if (legacyRole == RoleButtonDropDown) expandable = true;
+            }
+
+            var ancestors = new List<object>();
+            try
+            {
+                AutomationElement parent = TreeWalker.ControlViewWalker.GetParent(element);
+                for (int depth = 0; depth < 4 && parent != null; depth++)
+                {
+                    AutomationElement.AutomationElementInformation info = parent.Current;
+                    string parentType = ControlTypeName(info.ControlType);
+                    if (parentType == "Window" || parentType == "Pane" && depth > 0) break;
+                    if (!string.IsNullOrEmpty(info.Name) || !string.IsNullOrEmpty(info.AutomationId))
+                    {
+                        ancestors.Add(new Dictionary<string, object> {
+                            { "name", SafeText(info.Name, MaxNameLength) },
+                            { "automationId", SafeText(info.AutomationId, MaxAnchorLength) },
+                            { "controlType", parentType }
+                        });
+                    }
+                    parent = TreeWalker.ControlViewWalker.GetParent(parent);
+                }
+            }
+            catch { }
+
+            var result = new Dictionary<string, object> {
+                { "name", SafeText(current.Name, MaxNameLength) },
+                { "automationId", SafeText(current.AutomationId, MaxAnchorLength) },
+                { "className", SafeText(current.ClassName, MaxAnchorLength) },
+                { "controlType", typeName },
+                { "rect", RectDictionary(current.BoundingRectangle) },
+                { "enabled", current.IsEnabled },
+                { "keyboardFocusable", current.IsKeyboardFocusable },
+                { "editable", editable },
+                { "invokable", invokable },
+                { "selectable", selectable },
+                { "selected", selected },
+                { "expandable", expandable },
+                { "ancestors", ancestors }
+            };
+            if (legacyRole >= 0) result["legacyRole"] = legacyRole;
+            return result;
+        }
+
+        private static Dictionary<string, object> WindowDictionary(WindowEntry window)
+        {
+            return new Dictionary<string, object> {
+                { "hwnd", window.Hwnd.ToInt64() },
+                { "pid", window.Pid },
+                { "process", window.Process },
+                { "title", window.Title },
+                { "className", window.ClassName },
+                { "rect", window.Rect.ToJson() },
+                { "foreground", window.Foreground }
+            };
+        }
+
+        private static Dictionary<string, object> RectDictionary(System.Windows.Rect rect)
+        {
+            return new Dictionary<string, object> {
+                { "x", (int)Math.Round(rect.Left) },
+                { "y", (int)Math.Round(rect.Top) },
+                { "w", (int)Math.Round(rect.Width) },
+                { "h", (int)Math.Round(rect.Height) }
+            };
+        }
+
+        private static string ControlTypeName(ControlType type)
+        {
+            string name = type == null ? string.Empty : type.ProgrammaticName;
+            const string prefix = "ControlType.";
+            return name.StartsWith(prefix, StringComparison.Ordinal) ? name.Substring(prefix.Length) : name;
+        }
+
+        private static string SafeText(string value, int max)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            string text = value.Trim();
+            return text.Length <= max ? text : text.Substring(0, max);
+        }
+
+        private static string NormalizeProcess(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return null;
+            string process = value.Trim();
+            if (process.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) process = process.Substring(0, process.Length - 4);
+            return process.Length == 0 ? null : process;
+        }
+
+        private static bool ProcessMatches(string process, string filter)
+        {
+            string name = NormalizeProcess(process);
+            return string.Equals(name, filter, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    internal static class MouseRecorder
+    {
+        private const int WhMouseLL = 14;
+        private const int WmLButtonDown = 0x0201;
+        private const int WmQuit = 0x0012;
+        private const int MaxEvents = 300;
+
+        private sealed class RawEvent
+        {
+            public string Kind;
+            public int X;
+            public int Y;
+            public DateTime At;
+        }
+
+        private static readonly object Sync = new object();
+        private static readonly object EventLock = new object();
+        private static readonly Queue<RawEvent> Pending = new Queue<RawEvent>();
+        private static readonly List<Dictionary<string, object>> Events = new List<Dictionary<string, object>>();
+        private static readonly ManualResetEvent HookReady = new ManualResetEvent(false);
+
+        private static Thread _hookThread;
+        private static Thread _workerThread;
+        private static LowLevelMouseProc _hookProc;
+        private static IntPtr _hook;
+        private static uint _hookThreadId;
+        private static volatile bool _active;
+        private static volatile bool _autoStopped;
+        private static volatile bool _hasResult;
+        private static DateTime _startedAt;
+        private static int _maxSeconds = 300;
+        private static int _anchorX;
+        private static int _anchorY;
+        private static DateTime _stableSince;
+        private static bool _hoverRecorded;
+        private static int _hookError;
+
+        public static Dictionary<string, object> Start(Dictionary<string, object> args)
+        {
+            lock (Sync)
+            {
+                if (_active) throw new HelperException("ALREADY_RECORDING", "A recording is already in progress.");
+                if (_hookThread != null) StopLocked();
+                Events.Clear();
+                lock (EventLock) { Pending.Clear(); }
+                _autoStopped = false;
+                _hasResult = false;
+                _hookError = 0;
+                _startedAt = DateTime.UtcNow;
+                _maxSeconds = Clamp(GetInt(args, "maxSeconds", 300), 15, 300);
+                POINT cursor;
+                if (!GetCursorPos(out cursor)) { cursor.x = 0; cursor.y = 0; }
+                _anchorX = cursor.x;
+                _anchorY = cursor.y;
+                _stableSince = DateTime.UtcNow;
+                _hoverRecorded = false;
+                _hookProc = HookCallback;
+                HookReady.Reset();
+                _hookThread = new Thread(HookThread);
+                _hookThread.IsBackground = true;
+                _hookThread.Name = "InsomniaZMouseHook";
+                _hookThread.Start();
+                HookReady.WaitOne(2000);
+                if (_hook == IntPtr.Zero)
+                {
+                    _active = false;
+                    throw new HelperException("HOOK_FAILED", "Could not install the mouse hook (win32 " + _hookError + ").");
+                }
+                _active = true;
+                _workerThread = new Thread(WorkerLoop);
+                _workerThread.IsBackground = true;
+                _workerThread.Name = "InsomniaZRecorder";
+                _workerThread.Start();
+                Log("info", "recording started; maxSeconds=" + _maxSeconds);
+                return StatusLocked();
+            }
+        }
+
+        public static Dictionary<string, object> Stop()
+        {
+            lock (Sync)
+            {
+                if (!_active && !_hasResult) throw new HelperException("NOT_RECORDING", "No recording is in progress.");
+                if (_active) StopLocked();
+                var result = new Dictionary<string, object>();
+                List<Dictionary<string, object>> snapshot;
+                lock (EventLock)
+                {
+                    snapshot = new List<Dictionary<string, object>>(Events);
+                }
+                result["recording"] = false;
+                result["startedAt"] = _startedAt.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+                result["durationMs"] = (int)Math.Max(0, (DateTime.UtcNow - _startedAt).TotalMilliseconds);
+                result["autoStopped"] = _autoStopped;
+                result["count"] = snapshot.Count;
+                result["events"] = snapshot;
+                lock (EventLock)
+                {
+                    Events.Clear();
+                    Pending.Clear();
+                }
+                _hasResult = false;
+                Log("info", "recording stopped; events=" + snapshot.Count + " autoStopped=" + _autoStopped);
+                return result;
+            }
+        }
+
+        public static Dictionary<string, object> Status()
+        {
+            lock (Sync)
+            {
+                var result = StatusLocked();
+                lock (EventLock) { result["eventCount"] = Events.Count; }
+                return result;
+            }
+        }
+
+        private static Dictionary<string, object> StatusLocked()
+        {
+            var result = new Dictionary<string, object>();
+            result["recording"] = _active;
+            result["startedAt"] = _startedAt == default(DateTime)
+                ? null
+                : _startedAt.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+            result["maxSeconds"] = _maxSeconds;
+            result["remainingMs"] = _active
+                ? (int)Math.Max(0, _maxSeconds * 1000 - (DateTime.UtcNow - _startedAt).TotalMilliseconds)
+                : 0;
+            result["autoStopped"] = _autoStopped;
+            lock (EventLock) { result["eventCount"] = Events.Count; }
+            return result;
+        }
+
+        private static void StopLocked()
+        {
+            _active = false;
+            _hasResult = true;
+            if (_hookThreadId != 0) PostThreadMessage(_hookThreadId, WmQuit, IntPtr.Zero, IntPtr.Zero);
+            Thread hook = _hookThread;
+            Thread worker = _workerThread;
+            _hookThread = null;
+            _workerThread = null;
+            try { if (hook != null && hook != Thread.CurrentThread) hook.Join(2000); } catch { }
+            try { if (worker != null && worker != Thread.CurrentThread) worker.Join(2000); } catch { }
+            _hookThreadId = 0;
+        }
+
+        private static void HookThread()
+        {
+            _hookThreadId = GetCurrentThreadId();
+            _hookProc = HookCallback;
+            _hook = SetWindowsHookEx(WhMouseLL, _hookProc, GetModuleHandle(null), 0);
+            if (_hook == IntPtr.Zero)
+            {
+                _hookError = Marshal.GetLastWin32Error();
+                HookReady.Set();
+                return;
+            }
+            HookReady.Set();
+            MSG message;
+            while (GetMessage(out message, IntPtr.Zero, 0, 0) > 0)
+            {
+                TranslateMessage(ref message);
+                DispatchMessage(ref message);
+            }
+            if (_hook != IntPtr.Zero)
+            {
+                UnhookWindowsHookEx(_hook);
+                _hook = IntPtr.Zero;
+            }
+        }
+
+        private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0 && _active && wParam.ToInt32() == WmLButtonDown)
+            {
+                try
+                {
+                    MSLLHOOKSTRUCT data = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+                    Enqueue("click", data.pt.x, data.pt.y);
+                }
+                catch { }
+            }
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
+        }
+
+        private static void Enqueue(string kind, int x, int y)
+        {
+            lock (EventLock)
+            {
+                if (Events.Count + Pending.Count >= MaxEvents) return;
+                Pending.Enqueue(new RawEvent { Kind = kind, X = x, Y = y, At = DateTime.UtcNow });
+            }
+        }
+
+        private static void WorkerLoop()
+        {
+            while (_active)
+            {
+                if ((DateTime.UtcNow - _startedAt).TotalSeconds >= _maxSeconds)
+                {
+                    _autoStopped = true;
+                    _hasResult = true;
+                    _active = false;
+                    if (_hookThreadId != 0) PostThreadMessage(_hookThreadId, WmQuit, IntPtr.Zero, IntPtr.Zero);
+                    Log("info", "recording auto-stopped after " + _maxSeconds + " seconds");
+                    break;
+                }
+
+                List<RawEvent> batch;
+                lock (EventLock)
+                {
+                    batch = new List<RawEvent>(Pending);
+                    Pending.Clear();
+                }
+                foreach (RawEvent raw in batch) Enrich(raw);
+
+                POINT cursor;
+                if (GetCursorPos(out cursor))
+                {
+                    int dx = Math.Abs(cursor.x - _anchorX);
+                    int dy = Math.Abs(cursor.y - _anchorY);
+                    if (dx > 6 || dy > 6)
+                    {
+                        _anchorX = cursor.x;
+                        _anchorY = cursor.y;
+                        _stableSince = DateTime.UtcNow;
+                        _hoverRecorded = false;
+                    }
+                    else if (!_hoverRecorded && (DateTime.UtcNow - _stableSince).TotalMilliseconds >= 850)
+                    {
+                        _hoverRecorded = true;
+                        Enrich(new RawEvent { Kind = "hover", X = cursor.x, Y = cursor.y, At = DateTime.UtcNow });
+                    }
+                }
+                Thread.Sleep(70);
+            }
+        }
+
+        private static void Enrich(RawEvent raw)
+        {
+            lock (EventLock)
+            {
+                if (Events.Count >= MaxEvents) return;
+            }
+            Dictionary<string, object> described;
+            try { described = GuiAutomation.DescribePoint(raw.X, raw.Y); }
+            catch { described = null; }
+            if (described == null) return;
+
+            var item = new Dictionary<string, object>();
+            item["kind"] = raw.Kind;
+            item["at"] = raw.At.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+            item["offsetMs"] = (int)Math.Max(0, (raw.At - _startedAt).TotalMilliseconds);
+            item["x"] = raw.X;
+            item["y"] = raw.Y;
+            item["window"] = described["window"];
+            item["element"] = described["element"];
+            lock (EventLock) { Events.Add(item); }
+        }
+    }
+
     private sealed class RecoveryRecord
     {
         public string version { get; set; }
@@ -1146,6 +2405,292 @@ internal static class InsomniaZHelper
     [DllImport("kernel32.dll")]
     private static extern uint GetTickCount();
 
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDPIAware();
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint count, INPUT[] inputs, int size);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+    [DllImport("user32.dll")]
+    private static extern bool TranslateMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr DispatchMessage(ref MSG lpMsg);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT pt);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, StringBuilder name, int count);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(POINT point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetModuleHandle(string moduleName);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out int value, int size);
+
+    [DllImport("powrprof.dll", SetLastError = true)]
+    private static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
+
+    [DllImport("ole32.dll")]
+    private static extern int CoInitializeEx(IntPtr reserved, uint coInit);
+
+    [DllImport("oleacc.dll")]
+    private static extern int AccessibleObjectFromPoint(POINT ptScreen,
+        [MarshalAs(UnmanagedType.Interface)] out Accessibility.IAccessible accessible, ref object child);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MSLLHOOKSTRUCT
+    {
+        public POINT pt;
+        public uint mouseData;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MSG
+    {
+        public IntPtr hwnd;
+        public uint message;
+        public IntPtr wParam;
+        public IntPtr lParam;
+        public uint time;
+        public int ptX;
+        public int ptY;
+    }
+
+    private static int GetInt(Dictionary<string, object> source, string key, int fallback)
+    {
+        object value;
+        if (source != null && source.TryGetValue(key, out value) && value != null)
+        {
+            try { return Convert.ToInt32(value, CultureInfo.InvariantCulture); } catch { }
+        }
+        return fallback;
+    }
+
+    private static long GetLong(Dictionary<string, object> source, string key, long fallback)
+    {
+        object value;
+        if (source != null && source.TryGetValue(key, out value) && value != null)
+        {
+            try { return Convert.ToInt64(value, CultureInfo.InvariantCulture); } catch { }
+        }
+        return fallback;
+    }
+
+    private static int Clamp(int value, int min, int max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private static string ProcessName(int pid)
+    {
+        try
+        {
+            string name = Process.GetProcessById(pid).ProcessName;
+            return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+
+    private static string WindowTitle(IntPtr hwnd)
+    {
+        try
+        {
+            int length = GetWindowTextLength(hwnd);
+            if (length <= 0) return string.Empty;
+            var buffer = new StringBuilder(length + 2);
+            GetWindowText(hwnd, buffer, buffer.Capacity);
+            return buffer.ToString().Trim();
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string WindowClass(IntPtr hwnd)
+    {
+        try
+        {
+            var buffer = new StringBuilder(256);
+            GetClassName(hwnd, buffer, buffer.Capacity);
+            return buffer.ToString();
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static bool TryGetWindowRect(IntPtr hwnd, out IntRect rect)
+    {
+        rect = null;
+        RECT raw;
+        if (!GetWindowRect(hwnd, out raw)) return false;
+        int width = raw.Right - raw.Left;
+        int height = raw.Bottom - raw.Top;
+        if (width <= 0 || height <= 0) return false;
+        rect = new IntRect { X = raw.Left, Y = raw.Top, W = width, H = height };
+        return true;
+    }
+
+    private static void SendMouse(uint flags)
+    {
+        INPUT[] inputs = new INPUT[1];
+        inputs[0].type = 0;
+        inputs[0].Data.mi.dx = 0;
+        inputs[0].Data.mi.dy = 0;
+        inputs[0].Data.mi.mouseData = 0;
+        inputs[0].Data.mi.dwFlags = flags;
+        inputs[0].Data.mi.time = 0;
+        inputs[0].Data.mi.dwExtraInfo = IntPtr.Zero;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
+    private static void SendVirtualKey(ushort vk, bool up)
+    {
+        INPUT[] inputs = new INPUT[1];
+        inputs[0].type = 1;
+        inputs[0].Data.ki.wVk = vk;
+        inputs[0].Data.ki.wScan = 0;
+        inputs[0].Data.ki.dwFlags = up ? 0x0002u : 0u;
+        inputs[0].Data.ki.time = 0;
+        inputs[0].Data.ki.dwExtraInfo = IntPtr.Zero;
+        SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+
+    private static void SendUnicodeText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        const int chunk = 80;
+        int offset = 0;
+        while (offset < text.Length)
+        {
+            int length = Math.Min(chunk, text.Length - offset);
+            INPUT[] inputs = new INPUT[length * 2];
+            for (int i = 0; i < length; i++)
+            {
+                char ch = text[offset + i];
+                int index = i * 2;
+                inputs[index].type = 1;
+                inputs[index].Data.ki.dwFlags = 0x0004u;
+                inputs[index].Data.ki.dwExtraInfo = IntPtr.Zero;
+                inputs[index + 1].type = 1;
+                inputs[index + 1].Data.ki.dwFlags = 0x0006u;
+                inputs[index + 1].Data.ki.dwExtraInfo = IntPtr.Zero;
+                if (ch == '\n')
+                {
+                    inputs[index].Data.ki.wVk = 0x0D;
+                    inputs[index + 1].Data.ki.wVk = 0x0D;
+                }
+                else if (ch == '\t')
+                {
+                    inputs[index].Data.ki.wVk = 0x09;
+                    inputs[index + 1].Data.ki.wVk = 0x09;
+                }
+                else
+                {
+                    inputs[index].Data.ki.wVk = 0;
+                    inputs[index].Data.ki.wScan = (ushort)ch;
+                    inputs[index + 1].Data.ki.wVk = 0;
+                    inputs[index + 1].Data.ki.wScan = (ushort)ch;
+                }
+            }
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+            offset += length;
+            Thread.Sleep(12);
+        }
+    }
 }

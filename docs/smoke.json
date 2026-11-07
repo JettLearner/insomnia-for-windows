@@ -1,11 +1,11 @@
 {
   "ok": true,
-  "ranAt": "2026-10-31T08:57:41.760Z",
+  "ranAt": "2026-10-31T14:29:31.564Z",
   "results": [
     {
       "name": "panel.render",
       "ok": true,
-      "detail": "{\"app\":\"panel\",\"bootError\":null,\"textLength\":406}"
+      "detail": "{\"app\":\"panel\",\"bootError\":null,\"textLength\":413}"
     },
     {
       "name": "panel.bounds",
@@ -63,12 +63,12 @@
     {
       "name": "settings.render",
       "ok": true,
-      "detail": "{\"app\":\"settings\",\"bootError\":null,\"textLength\":979}"
+      "detail": "{\"app\":\"settings\",\"bootError\":null,\"textLength\":989}"
     },
     {
       "name": "settings.nav-count",
       "ok": true,
-      "detail": "nav=7"
+      "detail": "nav=8"
     },
     {
       "name": "settings.section-0",
@@ -93,17 +93,52 @@
     {
       "name": "settings.section-4",
       "ok": true,
-      "detail": "Appearance"
+      "detail": "Soft Stop"
     },
     {
       "name": "settings.section-5",
       "ok": true,
-      "detail": "Privacy"
+      "detail": "Appearance"
     },
     {
       "name": "settings.section-6",
       "ok": true,
+      "detail": "Privacy"
+    },
+    {
+      "name": "settings.section-7",
+      "ok": true,
       "detail": "About InsomniaZ"
+    },
+    {
+      "name": "softstop.render",
+      "ok": true,
+      "detail": "{\"phase\":\"Off\",\"prompt\":121,\"sliders\":[30,10],\"cards\":[\"Battery handoff\",\"Delivery target\",\"GUI fallback\",\"Teaching mode\",\"Verification\"]}"
+    },
+    {
+      "name": "softstop.thresholds",
+      "ok": true,
+      "detail": "[30,10]"
+    },
+    {
+      "name": "softstop.enable-ui",
+      "ok": true,
+      "detail": "enabled=true phase=idle"
+    },
+    {
+      "name": "softstop.phase-chip",
+      "ok": true,
+      "detail": "Idle"
+    },
+    {
+      "name": "softstop.disable-ui",
+      "ok": true,
+      "detail": "enabled=false phase=off"
+    },
+    {
+      "name": "softstop.detect-ui",
+      "ok": true,
+      "detail": "Streaming: possible · Local AI: Ollama · Traffic: 2.4 MB/s"
     },
     {
       "name": "settings.toggles-dark",
@@ -143,7 +178,7 @@
     {
       "name": "onboarding.render",
       "ok": true,
-      "detail": "{\"app\":\"onboarding\",\"bootError\":null,\"textLength\":512}"
+      "detail": "{\"app\":\"onboarding\",\"bootError\":null,\"textLength\":532}"
     },
     {
       "name": "onboarding.step1",
@@ -182,7 +217,7 @@
     {
       "name": "shortcut.registered",
       "ok": true,
-      "detail": "{\"accelerator\":\"Ctrl+Alt+I\",\"registered\":true}"
+      "detail": "{\"accelerator\":\"Ctrl+Alt+Shift+F9\",\"registered\":true}"
     }
   ]
 }

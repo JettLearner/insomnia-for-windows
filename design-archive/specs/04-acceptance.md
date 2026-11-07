@@ -1,5 +1,8 @@
 # InsomniaZ for Windows — 验收报告
 
+> **已归档 / Archived** — 历史设计记录，不代表当前行为。现行文档见 [`docs/`](../../docs) 与 [README](../../README.zh-CN.md)。
+> Historical design record, not current behaviour. See [`docs/`](../../docs) and the [README](../../README.md).
+
 > 版本：1.0.0  
 > 验收日期：2026-10-31  
 > 判定：**通过（附带 6 项环境限制，见第 8 节）**
@@ -163,9 +166,9 @@
 
 截图证据：
 
-- [packaged-onboarding-final.png](captures/packaged-onboarding-final.png) — 最终产物引导页（中文，第 1 步，真实窗口）
-- [packaged-panel-final.png](captures/packaged-panel-final.png) — 最终产物面板（中文，就绪，15 分钟选中）
-- [packaged-settings-final.png](captures/packaged-settings-final.png) — 最终产物设置页（通用分区，7 项导航完整）
+- [packaged-onboarding-final.png](../../docs/captures/packaged-onboarding-final.png) — 最终产物引导页（中文，第 1 步，真实窗口）
+- [packaged-panel-final.png](../../docs/captures/packaged-panel-final.png) — 最终产物面板（中文，就绪，15 分钟选中）
+- [packaged-settings-final.png](../../docs/captures/packaged-settings-final.png) — 最终产物设置页（通用分区，7 项导航完整）
 
 补充：正常退出与异常父进程退出两条回收路径均验证；异常退出后 helper 自行退出，不留进程。
 
@@ -232,7 +235,7 @@
 | FR-35 通知 | 已实现（静态） | 开启/结束/低电量/权限失败调用点齐全；未做通知视觉断言 |
 | FR-36 语言 | 已验证 | 冒烟中英切换；i18n 9 项单测 |
 | FR-37 主题 | 已验证 | 深/浅/系统 + 开关实际颜色与滑块位置断言 |
-| FR-38 零遥测/零网络 | 已验证（审计） | 网络守卫默认拦截、严格 CSP、无分析依赖；运行日志无外联记录；未抓包 |
+| FR-38 零遥测/默认零网络 | 已验证（审计） | 网络守卫默认拦截、严格 CSP、无分析依赖；运行日志无外联记录；未抓包。v1.1.0 远程 Soft Stop 默认关闭，仅显式启用后放行配置端点 |
 | FR-39 本地持久化 | 已验证 | 设置/会话/日志/恢复文件均在 `%APPDATA%\InsomniaZ` |
 | FR-40 外链白名单 | 已验证（静态） | 仅 `apps.apple.com` 与 `pawandixit.com` 的 https 链接 |
 | FR-41 IPC 最小暴露 | 已验证（审计） | contextIsolation+sandbox+无 nodeIntegration；sender 校验；命令逐字段校验 |
@@ -292,3 +295,59 @@
 - 安全基线：严格 CSP、contextIsolation+sandbox、网络拦截、IPC sender/参数校验、随机管道+token+父 PID 的 helper。
 - 已知缺口：物理合盖/拔插电源、通知视觉、Win11、安装版开机启动、安装/卸载流程、代码签名、内存目标。
 - **判定：在明确披露上述限制的前提下，验收通过。**
+
+---
+
+## 10. v1.1.0 软叫停验收增量（2026-10-31）
+
+### 10.1 自动化
+
+| 项目 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npx vitest run` | **12 文件 / 149 测试通过** |
+| `npx electron . --smoke` | **44/44 通过**（`docs/smoke.json`，2026-10-31 22:29；最终源码含 About 版本号修复） |
+| Soft Stop 冒烟子项 | 页面渲染、5 卡片、双阈值、启用/停用、相位芯片、真实 AI 活动探测全部通过 |
+| 真实 HTTP socket | 模型发现 → 提示词渲染 → `Authorization: Bearer` → 200；HTTP 500 不泄露提示词；已知模型 dry-run 零连接 |
+
+新增测试文件：`soft-stop.test.ts`、`soft-stop-engine.test.ts`、`soft-stop-sender.test.ts`、`soft-stop-http.test.ts`、`ai-detect.test.ts`、`gui.test.ts`、`knowledge.test.ts`。
+
+### 10.2 真实窗口（原生 WinForms 测试应用）
+
+| 项目 | 证据 |
+|---|---|
+| 扫描 | 输入框 `PromptInput` 0.95；发送键 `Send message` 0.97；侧边栏 0.75；忙碌对话 “Generating answer” 0.75 |
+| 真实发送 | 选择忙碌对话 → 写入完整中文提示词 → 点击发送；落盘 `Generating answer|软叫停测试：…` 与提示词完全一致 |
+| 示教录制 | 3 个鼠标事件（click 输入框、hover 输入框、hover 发送键），自动标签 input/send；`leakedPrompt=false` |
+| profile | 保存后重扫命中 `profile-uia-test-window`，识别结果保持正确 |
+| 测试进程 | 验收后已关闭，无残留测试窗口 |
+
+### 10.3 界面
+
+截图：`docs/captures/settings-softstop-en.png`（总览）、`settings-softstop-target-en.png`（投递目标）、`settings-softstop-teaching-en.png`（示教与验证）。深色/浅色、双语 key 对齐由 i18n 测试覆盖。
+
+### 10.4 未验证项
+
+- **B 点保护性休眠未实际执行**：执行会立即中断当前会话，留待用户在有人值守时用 “Sleep now” 验证。
+- 物理合盖状态下的两级触发、不同厂商电源方案、以管理员运行的目标应用、纯 Canvas 聊天界面未覆盖。
+- 录制/识别只在原生 WinForms 测试窗口与 MiniMax Code 上实测；其他应用依赖其 UIA 可访问性。
+- **1.1.0 未重跑全新用户目录首启冒烟（8 项）**：本机运行中的 v1.0.0 占用 `Ctrl+Alt+I`，fresh 模式会在快捷键子项误报；1.1.0 的 44 项冒烟使用专用 `Ctrl+Alt+Shift+F9`。首启路径沿用 v1.0.0 的 8/8 记录，引导页截图已由 1.1.0 重新生成。
+- **1.1.0 安装包未在运行中的 v1.0.0 旁启动**：同时运行会争抢快捷键、托盘与 helper 管道。已核对成品 `app.asar` 的版本号、软叫停代码与安装包元数据（1.1.0、未签名），安装包由该 `win-unpacked` 目录生成。
+
+### 10.5 判定
+
+在披露上述限制的前提下，v1.1.0 软叫停功能验收通过；默认安全姿态为 dry-run + 白名单 + 首次确认，远程端点默认关闭。
+
+### 10.6 打包产物（2026-10-31）
+
+| 产物 | 大小 | SHA-256 |
+|---|---:|---|
+| `release/InsomniaZ-Windows-1.1.0-x64.exe` | 96,617,266 字节 | `b155e9177b8bf7d224891fdfcd839cf8e5ec1d0b7c896ccd7ed5f4500e3ff75b` |
+| `release/InsomniaZ-Windows-1.1.0-portable.exe` | 96,385,143 字节 | `cd6289bfdf2b0ef1aaf24b74030204dca27f08d878795ebb3539da9ddd8e34ec` |
+| `release/InsomniaZ-Windows-1.1.0-screenshots.zip` | 2,927,469 字节 | —（20 张 PNG） |
+
+- 主程序版本资源：FileVersion `1.1.0`、ProductVersion `1.1.0.0`、ProductName `InsomniaZ`、CompanyName `Independent Windows port`。
+- Helper：59,392 字节，版本 `1.1.0.0`；`app.asar` 内 `package.json` 版本 `1.1.0`，渲染层不含 `1.0.0` 残留。
+- 两个安装包均为 `NotSigned`；`release/SHA256SUMS.txt` 已在 `release/` 内用 `sha256sum -c` 校验通过。
+- 生成流程：`npm run build` → `electron-builder --win --dir`（`signAndEditExecutable=false`）→ 本地 rcedit 写入图标与版本 → `--prepackaged` 生成 NSIS/portable。
+- 安装包未与运行中的 v1.0.0 并行启动，原因见 10.4；`release/` 中已有的 1.0.0 二进制保持原样未覆盖。

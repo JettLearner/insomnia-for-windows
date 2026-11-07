@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, type Settings, type SettingsPatch, type SessionState 
 import { sanitizeSession, sanitizeSettings } from '../../shared/settings';
 import type { Logger } from './logger';
 
-function writeAtomic(file: string, contents: string): void {
+export function writeAtomic(file: string, contents: string): void {
   mkdirSync(dirname(file), { recursive: true });
   const tmp = `${file}.tmp-${process.pid}-${Date.now()}`;
   writeFileSync(tmp, contents, 'utf8');
@@ -20,7 +20,7 @@ function writeAtomic(file: string, contents: string): void {
   }
 }
 
-function readJson(file: string): unknown {
+export function readJson(file: string): unknown {
   if (!existsSync(file)) return undefined;
   try {
     return JSON.parse(readFileSync(file, 'utf8'));

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { MessageKey } from '../../shared/i18n';
 import type { SettingsPatch } from '../../shared/types';
 import {
+  Activity,
   Battery,
   Info,
   Keyboard,
@@ -20,11 +21,20 @@ import { GeneralSection } from './settings/GeneralSection';
 import { ShortcutsSection } from './settings/ShortcutsSection';
 import { PowerSection } from './settings/PowerSection';
 import { BatterySection } from './settings/BatterySection';
+import { SoftStopSection } from './settings/SoftStopSection';
 import { AppearanceSection } from './settings/AppearanceSection';
 import { PrivacySection } from './settings/PrivacySection';
 import { AboutSection } from './settings/AboutSection';
 
-type SectionId = 'general' | 'shortcuts' | 'power' | 'battery' | 'appearance' | 'privacy' | 'about';
+type SectionId =
+  | 'general'
+  | 'shortcuts'
+  | 'power'
+  | 'battery'
+  | 'softstop'
+  | 'appearance'
+  | 'privacy'
+  | 'about';
 
 interface NavEntry {
   id: SectionId;
@@ -37,6 +47,7 @@ const NAV: NavEntry[] = [
   { id: 'shortcuts', label: 'navShortcuts', icon: <Keyboard size={15} /> },
   { id: 'power', label: 'navPower', icon: <Power size={15} /> },
   { id: 'battery', label: 'navBattery', icon: <Battery size={15} /> },
+  { id: 'softstop', label: 'navSoftStop', icon: <Activity size={15} /> },
   { id: 'appearance', label: 'navAppearance', icon: <Palette size={15} /> },
   { id: 'privacy', label: 'navPrivacy', icon: <Lock size={15} /> },
   { id: 'about', label: 'navAbout', icon: <Info size={15} /> },
@@ -112,6 +123,8 @@ export function Settings() {
         return <PowerSection />;
       case 'battery':
         return <BatterySection />;
+      case 'softstop':
+        return <SoftStopSection />;
       case 'appearance':
         return <AppearanceSection />;
       case 'privacy':

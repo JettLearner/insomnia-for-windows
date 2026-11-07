@@ -11,7 +11,7 @@ export function requireApi(): InsomniazApi {
   return api;
 }
 
-const WINDOWS: readonly WindowName[] = ['panel', 'settings', 'onboarding'];
+const WINDOWS: readonly WindowName[] = ['panel', 'settings', 'onboarding', 'autopilot'];
 
 export function readWindowName(): WindowName {
   const raw = new URLSearchParams(window.location.search).get('window');

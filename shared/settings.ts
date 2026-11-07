@@ -5,6 +5,14 @@ import {
   type SessionState,
 } from './types';
 import { canonicalize } from './shortcut';
+import {
+  clampSoftStopThresholds,
+  normalizeAllowlist,
+  normalizeEndpoint,
+  normalizeModelName,
+  normalizeProfileId,
+  normalizeSoftStopPrompt,
+} from './soft-stop';
 
 const LANGUAGES = new Set(['system', 'en-US', 'zh-CN']);
 const THEMES = new Set(['dark', 'light', 'system']);
@@ -48,6 +56,12 @@ export function sanitizeSettings(raw: unknown): Settings {
   }
 
   const interval = boundedInt(input.activityIntervalSec, d.activityIntervalSec, 30, 300);
+  const softStopPrompt = normalizeSoftStopPrompt(input.softStopPrompt) || d.softStopPrompt;
+  const softStopThresholds = clampSoftStopThresholds(
+    input.softStopThreshold,
+    input.softStopSleepThreshold,
+  );
+  const endpoint = normalizeEndpoint(input.softStopHttpBase);
 
   return {
     schemaVersion: 1,
@@ -64,6 +78,18 @@ export function sanitizeSettings(raw: unknown): Settings {
     batteryGuardEnabled: bool(input.batteryGuardEnabled, d.batteryGuardEnabled),
     batteryThreshold: boundedInt(input.batteryThreshold, d.batteryThreshold, 5, 95),
     stopOnBattery: bool(input.stopOnBattery, d.stopOnBattery),
+    softStopEnabled: bool(input.softStopEnabled, d.softStopEnabled),
+    softStopPrompt,
+    softStopThreshold: softStopThresholds.threshold,
+    softStopSleepThreshold: softStopThresholds.sleepThreshold,
+    softStopAllowRemote: bool(input.softStopAllowRemote, d.softStopAllowRemote),
+    softStopDryRun: bool(input.softStopDryRun, d.softStopDryRun),
+    softStopAutoSend: bool(input.softStopAutoSend, d.softStopAutoSend),
+    softStopGuiEnabled: bool(input.softStopGuiEnabled, d.softStopGuiEnabled),
+    softStopGuiAllowlist: normalizeAllowlist(input.softStopGuiAllowlist),
+    softStopProfileId: normalizeProfileId(input.softStopProfileId),
+    softStopHttpBase: endpoint.base ?? '',
+    softStopHttpModel: normalizeModelName(input.softStopHttpModel),
     activityIntervalSec: ACTIVITY_INTERVALS.has(interval) ? interval : d.activityIntervalSec,
     showNotifications: bool(input.showNotifications, d.showNotifications),
     closePanelOnBlur: bool(input.closePanelOnBlur, d.closePanelOnBlur),

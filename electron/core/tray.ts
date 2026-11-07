@@ -218,6 +218,10 @@ export class TrayController {
         click: () => windows.showPanel(),
       },
       {
+        label: this.t('autopilotOpen'),
+        click: () => windows.showAutopilot(),
+      },
+      {
         label: this.t('traySettings'),
         click: () => windows.openSettings(),
       },

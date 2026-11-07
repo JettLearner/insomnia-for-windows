@@ -1,29 +1,86 @@
 # Security Policy
 
+中文版本：[SECURITY.zh-CN.md](SECURITY.zh-CN.md)
+
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 1.0.x | Yes |
+| 1.2.x | Yes |
+| 1.1.x and earlier | No — please upgrade |
 
 ## Reporting a vulnerability
 
-请通过仓库的 **Security → Report a vulnerability** 私下报告，不要公开提交 issue。报告中请包含：
+Please report privately through the repository's **Security → Report a vulnerability**.
+Do not open a public issue. Include:
 
-- 受影响版本与 Windows 版本；
-- 复现步骤与影响范围；
-- 是否涉及提权助手、合盖策略写入/恢复、IPC 鉴权、渲染进程隔离或网络守卫。
+- the affected app version and Windows version;
+- reproduction steps and impact;
+- whether it involves the elevated helper, lid-policy write/restore, IPC authorisation,
+  renderer isolation, the network guard, or Autopilot GUI delivery.
 
-范围包括但不限于：绕过提权边界、策略未恢复、命名管道/token 泄露、IPC 参数注入、CSP 或导航绕过、意外网络访问。普通使用问题请走 Issues。
+In scope: bypassing the elevation boundary, a lid policy left unrestored, named-pipe or token
+disclosure, IPC argument injection, CSP or navigation bypass, unintended network access, and
+Autopilot clicking or typing into a window the user did not authorise. General usage questions
+belong in Issues.
 
-## 设计边界
+## Design boundaries
 
-- 应用不发起任何远程请求，也不包含自动更新或遥测。
-- 提权助手不使用 Windows 服务、计划任务或开机自启；仅按需通过 UAC 启动，固定命令集，使用随机命名管道、随机 token 和父进程监视，父进程退出即恢复合盖策略并退出。
-- 合盖策略写入前先落盘原值备份，写入后回读校验；失败立即回滚。正常退出删除备份。
-- 渲染进程启用 `contextIsolation`、`sandbox`，禁用 `nodeIntegration`，使用严格 CSP；生产构建关闭 DevTools。
-- 发布二进制未做代码签名，请用 `SHA256SUMS.txt` 校验下载文件。
+### Network and secrets
 
-## 响应
+- The app makes no remote requests by default and contains no auto-update or telemetry.
+- Soft Stop only contacts loopback endpoints; remote endpoints require an explicit opt-in.
+- The Autopilot fallback chain prefers a local Ollama runtime. An OpenAI-compatible remote
+  endpoint is used only when remote access is explicitly enabled **and** a key is stored;
+  without a key it fails with `FALLBACK_NO_KEY` instead of calling a paid API.
+- No `Authorization` header is ever sent to a local Ollama endpoint.
+- API keys are encrypted with Windows DPAPI (`safeStorage`). Logs and audit entries record
+  only whether a key exists, never its value, and never prompt text.
 
-维护者会尽快确认报告并评估影响；修复发布前请避免公开细节。
+### Elevation and lid policy
+
+- The elevated helper is not a Windows service, scheduled task or startup entry. It is launched
+  through UAC only when lid-close protection is turned on.
+- It accepts a fixed command set over a randomly named pipe with a random token and watches its
+  parent process; when the parent exits or crashes it restores the original lid policy and exits.
+- The original lid value is written to disk before any change and read back after it; a failed
+  verification rolls back immediately. A normal exit deletes the backup.
+
+### GUI automation (Soft Stop fallback and Autopilot)
+
+- Teaching mode uses a low-level **mouse** hook only. There is no keyboard hook: no typed text,
+  clipboard content or screen text is recorded. Saved profiles keep control fingerprints and
+  labels, not coordinates, ordering or durations.
+- Screenshots are taken only when the user explicitly opts in, and only of the selected window.
+- Soft Stop's GUI fallback requires a whitelist match and, by default, dry-run plus confirmation.
+- Autopilot only drives the target you selected in the task (ZCode, WorkBuddy, a generic window or
+  fallback-only). It never preselects a model or conversation on your behalf unless the task says so.
+- The protection gate hides the Autopilot window and defers GUI delivery while screen recording,
+  remote control or high CPU load is detected, so automation never fights a human for the desktop.
+
+### Attachments
+
+- Attachment resolution reads file names, sizes and a SHA-256 of the first 64 KiB. It searches the
+  original directory, its parent, previously seen paths, any roots you configure, and your
+  Desktop/Documents/Downloads folders. It does not read document contents into logs.
+- A known file is only matched by name **plus** size or hash, so an unrelated namesake is never
+  delivered in its place.
+- Backups are stored under `%APPDATA%\InsomniaZ\attachments\`. Before delivery, a backup is
+  restored to the file's **original path** and the target app reads that original path — never the
+  backup directory. If the original directory is unusable, the attachment is skipped and a note is
+  appended to the prompt.
+- Backup deletion is confined to the managed backup root; the original file is never deleted.
+
+### Renderer
+
+- `contextIsolation` and `sandbox` are enabled, `nodeIntegration` is disabled, a strict CSP is
+  applied, and DevTools are disabled in production builds.
+
+### Distribution
+
+- Release binaries are **not code-signed**. Verify downloads against `SHA256SUMS.txt`.
+
+## Response
+
+The maintainer will acknowledge reports and assess impact as soon as possible. Please avoid
+publishing details until a fix is released.

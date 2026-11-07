@@ -1,6 +1,5 @@
 node_modules/
 dist/
-release/
 docs/.capture-profile/
 docs/.smoke-profile/
 .scratch/
@@ -12,3 +11,15 @@ docs/appstore.json
 build-out*/
 Thumbs.db
 .DS_Store
+
+# Local release staging directories only. The leading slash anchors the rule to the
+# repository root, so design-archive/release-history/ is not swallowed by it.
+# 仅忽略仓库根目录下的本地发布暂存目录；前导斜杠把规则锚定在根目录，
+# 避免 design-archive/release-history/ 被一并忽略。
+/release-*/
+/release/
+
+# Raw desktop reconnaissance dumps contain personal window titles and paths.
+# 原始桌面侦察 dump 含个人窗口标题与路径：只在本地归档，不入仓库。
+design-archive/probes/
+design-archive/winrt-scratch/
