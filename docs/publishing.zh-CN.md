@@ -27,17 +27,21 @@
 
 ### 2.1 自动化验证
 
-- [ ] `npm run typecheck` 通过（当前基线：0 错误）。
-- [ ] `npm test` 通过（当前基线：**23 个文件 304 测试**）。
-- [ ] `npm run build` 通过（主进程、渲染层、`InsomniaZHelper.exe`、`InsomniaZAuto.exe`）。
-- [ ] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项。
+- [x] `npm run typecheck` 通过（当前基线：0 错误）。
+- [x] `npm test` 通过（当前基线：**24 个文件 307 测试**）。
+- [x] `npm run build` 通过（主进程、渲染层、`InsomniaZHelper.exe`、`InsomniaZAuto.exe`）。
+- [x] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项——**2026-11-07 实测 44/44**。
   - 注意：`--smoke` 与 `npm run capture` 会改动**真实系统电源策略**。合盖保护生效期间不要跑。
 - [ ] 冒烟结果写回 `docs/release-notes-v1.2.0.md` 的验证表。
 
-### 2.2 实机验证（尚未完成，不得跳过）
+### 2.2 实机验证
 
-- [ ] 压测：长时间运行、负载下的保存节流、掉电/休眠前落盘。
-- [ ] 两项完成后才允许打包二进制。
+- [x] 压测：**2026-11-07 实测 12/12 通过**（`STRESS_MINUTES=3 npx electron . --stress`）。防休眠会话在两个满载
+      CPU 进程下跑满 3 分钟窗口；36 次采样，最大间隔 5.1 秒；36 次设置写入期间文件始终可解析；
+      提权 helper 全程在线；停用后会话文件被清除。进程树内存峰值 486 MB，应用 CPU 峰值 8.6%。
+      报告见 `docs/stress.json`。
+- [x] 冒烟与压测均为绿，可以打包二进制。
+- [ ] 打包安装包与实际发布仍需你明确放行。
 
 ### 2.3 隐私与配置
 

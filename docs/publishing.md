@@ -30,20 +30,24 @@ published**.
 
 ### 2.1 Automated verification
 
-- [ ] `npm run typecheck` passes (current baseline: 0 errors).
-- [ ] `npm test` passes (current baseline: **304 tests in 23 files**).
-- [ ] `npm run build` passes (main process, renderer, `InsomniaZHelper.exe`, `InsomniaZAuto.exe`).
-- [ ] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures.
+- [x] `npm run typecheck` passes (current baseline: 0 errors).
+- [x] `npm test` passes (current baseline: **307 tests in 24 files**).
+- [x] `npm run build` passes (main process, renderer, `InsomniaZHelper.exe`, `InsomniaZAuto.exe`).
+- [x] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures — **44/44 on 2026-11-07**.
   - Note: `--smoke` and `npm run capture` change the **real system power policy**. Do not run
     them while lid-close protection is active.
 - [ ] The smoke result is written back into the verification table of
     `docs/release-notes-v1.2.0.md`.
 
-### 2.2 On-hardware verification (still open — do not skip)
+### 2.2 On-hardware verification
 
-- [ ] Stress run: long-running sessions, throttled saving under load, flush before suspend and
-      shutdown.
-- [ ] Only after both may binaries be built.
+- [x] Load run: **12/12 on 2026-11-07** (`STRESS_MINUTES=3 npx electron . --stress`). A keep-awake
+      session ran for the full 3-minute window under two saturated CPU processes; 36 samples, largest
+      gap 5.1 s; 36 settings writes with the file parseable throughout; the power helper stayed
+      connected throughout; the session file was removed on deactivate. Peak app-tree RSS 486 MB,
+      peak app CPU 8.6%. Report: `docs/stress.json`.
+- [x] The smoke run and the load run are both green, so binaries may be built.
+- [ ] Building the installers and publishing them still needs an explicit go-ahead.
 
 ### 2.3 Privacy and configuration
 

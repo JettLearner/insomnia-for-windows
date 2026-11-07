@@ -2,6 +2,7 @@ node_modules/
 dist/
 docs/.capture-profile/
 docs/.smoke-profile/
+docs/.stress-profile/
 .scratch/
 .tools/
 docs/assets/

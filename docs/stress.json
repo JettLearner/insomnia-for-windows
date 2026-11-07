@@ -1,0 +1,361 @@
+{
+  "ok": true,
+  "ranAt": "2026-11-07T02:41:58.504Z",
+  "minutes": 3,
+  "samples": [
+    {
+      "elapsedMs": 5051,
+      "treeRssMb": 352.3,
+      "appCpuPercent": 0,
+      "sampleGapMs": 5007,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 10057,
+      "treeRssMb": 329.9,
+      "appCpuPercent": 0,
+      "sampleGapMs": 5006,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 15076,
+      "treeRssMb": 330.3,
+      "appCpuPercent": 0,
+      "sampleGapMs": 5019,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 20090,
+      "treeRssMb": 330.9,
+      "appCpuPercent": 0,
+      "sampleGapMs": 5014,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 25096,
+      "treeRssMb": 327.6,
+      "appCpuPercent": 0,
+      "sampleGapMs": 5006,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 30104,
+      "treeRssMb": 327.5,
+      "appCpuPercent": 0.2,
+      "sampleGapMs": 5008,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 35115,
+      "treeRssMb": 353.9,
+      "appCpuPercent": 1.7,
+      "sampleGapMs": 5011,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 40119,
+      "treeRssMb": 347.4,
+      "appCpuPercent": 0.5,
+      "sampleGapMs": 5004,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 45133,
+      "treeRssMb": 353.5,
+      "appCpuPercent": 0.5,
+      "sampleGapMs": 5014,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 50150,
+      "treeRssMb": 486.4,
+      "appCpuPercent": 2.6,
+      "sampleGapMs": 5017,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 55161,
+      "treeRssMb": 479.4,
+      "appCpuPercent": 6.2,
+      "sampleGapMs": 5011,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 60167,
+      "treeRssMb": 468.8,
+      "appCpuPercent": 4.7,
+      "sampleGapMs": 5006,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 65174,
+      "treeRssMb": 471.2,
+      "appCpuPercent": 5.1,
+      "sampleGapMs": 5007,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 70178,
+      "treeRssMb": 466.5,
+      "appCpuPercent": 4.6,
+      "sampleGapMs": 5004,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 75191,
+      "treeRssMb": 467.5,
+      "appCpuPercent": 4.7,
+      "sampleGapMs": 5013,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 80197,
+      "treeRssMb": 468.9,
+      "appCpuPercent": 4.4,
+      "sampleGapMs": 5006,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 85209,
+      "treeRssMb": 468.8,
+      "appCpuPercent": 5.5,
+      "sampleGapMs": 5012,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 90219,
+      "treeRssMb": 469.7,
+      "appCpuPercent": 6.7,
+      "sampleGapMs": 5010,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 95253,
+      "treeRssMb": 471.5,
+      "appCpuPercent": 4.8,
+      "sampleGapMs": 5034,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 100268,
+      "treeRssMb": 472.3,
+      "appCpuPercent": 4.6,
+      "sampleGapMs": 5015,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 105280,
+      "treeRssMb": 473.4,
+      "appCpuPercent": 4.6,
+      "sampleGapMs": 5012,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 110295,
+      "treeRssMb": 472.8,
+      "appCpuPercent": 4.3,
+      "sampleGapMs": 5015,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 115310,
+      "treeRssMb": 471.8,
+      "appCpuPercent": 4.1,
+      "sampleGapMs": 5015,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 120327,
+      "treeRssMb": 473.3,
+      "appCpuPercent": 4.4,
+      "sampleGapMs": 5017,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 125330,
+      "treeRssMb": 478,
+      "appCpuPercent": 4.6,
+      "sampleGapMs": 5003,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 130340,
+      "treeRssMb": 476.1,
+      "appCpuPercent": 4.9,
+      "sampleGapMs": 5010,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 135361,
+      "treeRssMb": 475.9,
+      "appCpuPercent": 5.8,
+      "sampleGapMs": 5021,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 140368,
+      "treeRssMb": 477.3,
+      "appCpuPercent": 4.9,
+      "sampleGapMs": 5007,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 145376,
+      "treeRssMb": 478.1,
+      "appCpuPercent": 4.8,
+      "sampleGapMs": 5008,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 150379,
+      "treeRssMb": 479.9,
+      "appCpuPercent": 5.2,
+      "sampleGapMs": 5003,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 155416,
+      "treeRssMb": 484.4,
+      "appCpuPercent": 5,
+      "sampleGapMs": 5037,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 160462,
+      "treeRssMb": 485.6,
+      "appCpuPercent": 6.4,
+      "sampleGapMs": 5046,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 165546,
+      "treeRssMb": 486.1,
+      "appCpuPercent": 7.3,
+      "sampleGapMs": 5084,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 170603,
+      "treeRssMb": 483.5,
+      "appCpuPercent": 8,
+      "sampleGapMs": 5057,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 175616,
+      "treeRssMb": 486,
+      "appCpuPercent": 7.8,
+      "sampleGapMs": 5013,
+      "sessionActive": true,
+      "helperConnected": true
+    },
+    {
+      "elapsedMs": 180634,
+      "treeRssMb": 484.9,
+      "appCpuPercent": 8.6,
+      "sampleGapMs": 5018,
+      "sessionActive": true,
+      "helperConnected": true
+    }
+  ],
+  "results": [
+    {
+      "name": "stress.session-activate",
+      "ok": true,
+      "detail": "{\"ok\":true,\"state\":{\"session\":{\"active\":true,\"startedAt\":1794019318508,\"endsAt\":null,\"durationMs\":null,\"displayMode\":\"auto\",\"advanced\":false,\"lid\":false},\"settings\":{\"schemaVersion\":1,\"language\":\"system\",\"theme\":\"dark\",\"launchAtLogin\":false,\"startActiveOnLaunch\":false,\"restoreSession\":true,\"shortcut\":\"Ctrl+Alt+I\",\"defaultDisplayMode\":\"auto\",\"lastDurationMs\":null,\"lidGuardPreferred\":false,\"advancedDefault\":false,\"batteryGuardEnabled\":true,\"batteryThreshold\":20,\"stopOnBattery\":false,\"softStopEnabled\":false,\"softStopPrompt\":\"Please stop starting new work, finish the current step, save your state and report briefly. 请停止开始新任务，完成当前步骤、保存状态并简短汇报后结束。\",\"softStopThreshold\":30,\"softStopSleepThreshold\":10,\"softStopAllowRemote\":false,\"softStopDryRun\":true,\"softStopAutoSend\":false,\"softStopGuiEnabled\":false,\"softStopGuiAllowlist\":[],\"softStopProfileId\":null,\"softStopHttpBase\":\"\",\"softStopHttpModel\":\"\",\"activityIntervalSec\":60,\"showNotifications\":true,\"closePanelOnBlur\":true,\"leftClickOpensPanel\":true,\"animations\":true,\"onboardingComplete\":false,\"compactDensity\":false},\"power\":{\"ac\":false,\"batteryPercent\":null,\"charging\":false,\"batteryPresent\":false},\"capabilities\":{\"helperConnected\":false,\"elevated\":false,\"lidPolicySupported\":null,\"lidActive\":false,\"lidError\":null,\"recoveryPending\":false,\"helperVersion\":null},\"displays\":{\"count\":1,\"external\":false},\"softStop\":{\"phase\":\"off\",\"triggeredThisCycle\":false,\"attempts\":0,\"lastSample\":null,\"lastAction\":\"none\",\"lastActionAt\":null,\"lastActionTarget\":null,\"lastError\":null,\"hasHttpKey\":false,\"profileCount\":0},\"now\":1794019318520,\"busy\":false,\"locale\":\"zh-CN\",\"version\":\"1.2.0\"}}"
+    },
+    {
+      "name": "stress.session-survived",
+      "ok": true,
+      "detail": "keep-awake session still active"
+    },
+    {
+      "name": "stress.duration-covered",
+      "ok": true,
+      "detail": "180634 ms of 180000 ms in 36 samples"
+    },
+    {
+      "name": "stress.sample-cadence",
+      "ok": true,
+      "detail": "largest gap 5084 ms"
+    },
+    {
+      "name": "stress.helper-alive",
+      "ok": true,
+      "detail": "power helper still connected"
+    },
+    {
+      "name": "stress.settings-written",
+      "ok": true,
+      "detail": "36 writes"
+    },
+    {
+      "name": "stress.settings-mtime",
+      "ok": true,
+      "detail": "last mtime=1794019499139.2783"
+    },
+    {
+      "name": "stress.settings-valid",
+      "ok": true,
+      "detail": "settings.json parses"
+    },
+    {
+      "name": "stress.session-valid",
+      "ok": true,
+      "detail": "session.json parses"
+    },
+    {
+      "name": "stress.memory-bounded",
+      "ok": true,
+      "detail": "peak tree RSS 486.4 MB"
+    },
+    {
+      "name": "stress.cpu-bounded",
+      "ok": true,
+      "detail": "peak app CPU 8.6%"
+    },
+    {
+      "name": "stress.shutdown-persisted",
+      "ok": true,
+      "detail": "session file removed on deactivate"
+    }
+  ],
+  "peakTreeRssMb": 486.4,
+  "peakAppCpuPercent": 8.6,
+  "maxSampleGapMs": 5084,
+  "settingsWrites": 36
+}

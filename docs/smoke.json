@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "ranAt": "2026-10-31T14:29:31.564Z",
+  "ranAt": "2026-11-07T02:45:55.287Z",
   "results": [
     {
       "name": "panel.render",
@@ -138,7 +138,7 @@
     {
       "name": "softstop.detect-ui",
       "ok": true,
-      "detail": "Streaming: possible · Local AI: Ollama · Traffic: 2.4 MB/s"
+      "detail": "No AI streaming or busy local runtime right now."
     },
     {
       "name": "settings.toggles-dark",

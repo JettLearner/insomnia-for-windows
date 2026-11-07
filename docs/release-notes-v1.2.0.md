@@ -10,8 +10,9 @@ maintenance release focused on documentation.
 
 **Not affiliated with the original author. No copyrighted assets from the original app are included.**
 
-> **Release status: prepared, not published.** The 1.2.0 installers have not been built yet, and one
-> verification gate is still open (see *Verification*). Nothing here has been pushed to GitHub.
+> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07 (see
+> *Verification*), but the 1.2.0 installers have not been built yet. Nothing here has been pushed to
+> GitHub.
 
 ## Download
 
@@ -79,14 +80,14 @@ data); delete that directory manually for a full cleanup.
 | Item | Result |
 |---|---|
 | TypeScript type check (main + renderer + tests) | **Pass** |
-| Vitest unit/integration | **304 tests in 23 files pass** — real helper processes, real HTTP sockets, the Soft Stop state machine, GUI recognition and the teaching recorder |
+| Vitest unit/integration | **307 tests in 24 files pass** — real helper processes, real HTTP sockets, the Soft Stop state machine, GUI recognition and the teaching recorder |
 | Production build | **Pass** — main, renderer, `InsomniaZHelper.exe` and the automation helper |
-| Real Electron smoke | **Not re-run for 1.2.0.** Last full run: 44/44 on 1.1.0. Re-running touches the system power policy, which is currently holding an active lid-protected session |
-| Load / stress run | **Outstanding** |
+| Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
+| Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes: 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
 | Protective sleep | Implemented and unit-tested; never executed on real hardware |
 | Lid policy write/restore | Verified on real hardware; physical lid close untested |
 
-**Do not publish binaries until the smoke run and the stress run are done.**
+The binaries still have to be built and checksummed; publishing itself needs an explicit go-ahead.
 See the [publishing checklist](publishing.md).
 
 ## Known limitations
@@ -94,7 +95,8 @@ See the [publishing checklist](publishing.md).
 - **Protective sleep and physical lid close remain untested on real hardware.**
 - **Unsigned binaries**, Windows 11 / OEM power schemes, notification visuals, installer startup and
   clean-system NSIS install/uninstall still need per-machine confirmation.
-- **Memory** idle ≈213 MB versus a 160 MB design target; idle CPU 0–0.16%.
+- **Memory** idle ≈213 MB versus a 160 MB design target; idle CPU 0–0.16%. Under the sustained
+  saturated-CPU load run the process tree climbed to ≈486 MB and then stayed flat.
 - **GUI recognition depends on the target's accessibility and layout** — pure-canvas UIs cannot be
   read, and a target-app redesign can break ratio anchors and OCR labels.
 

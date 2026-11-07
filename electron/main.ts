@@ -1,8 +1,8 @@
 import { app, Menu, dialog, Notification, powerMonitor, screen } from 'electron';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { AutopilotService } from './core/autopilot-service';
 import { Controller } from './core/controller';
 import { WindowManager } from './core/windows';
@@ -17,6 +17,7 @@ import type { WindowName } from '../shared/types';
 const captureMode = process.argv.includes('--capture');
 const smokeMode = process.argv.includes('--smoke');
 const freshMode = process.argv.includes('--smoke-fresh');
+const stressMode = process.argv.includes('--stress');
 const devUrl = process.env.VITE_DEV_SERVER_URL ?? null;
 // Autopilot is not part of the published build; it only runs when explicitly enabled for this
 // launch, or during the internal screenshot capture.
@@ -25,13 +26,20 @@ const autopilotEnabled = isAutopilotEnabled(process.env) || captureMode;
 const appRoot = app.getAppPath();
 if (captureMode) app.setPath('userData', join(appRoot, 'docs', '.capture-profile'));
 if (smokeMode) app.setPath('userData', join(appRoot, 'docs', '.smoke-profile'));
+if (stressMode) app.setPath('userData', join(appRoot, 'docs', '.stress-profile'));
 let freshProfile: string | null = null;
 if (freshMode) {
   freshProfile = mkdtempSync(join(tmpdir(), 'insomniaz-fresh-'));
   app.setPath('userData', freshProfile);
 }
 
-if (captureMode || smokeMode || freshMode || process.env.INSOMNIAZ_SOFTWARE === '1') {
+if (
+  captureMode ||
+  smokeMode ||
+  freshMode ||
+  stressMode ||
+  process.env.INSOMNIAZ_SOFTWARE === '1'
+) {
   app.disableHardwareAcceleration();
 }
 app.commandLine.appendSwitch('disable-breakpad');
@@ -190,6 +198,10 @@ async function bootstrap(): Promise<void> {
   }
   if (freshMode) {
     await runFreshSmoke();
+    return;
+  }
+  if (stressMode) {
+    await runStress();
     return;
   }
 }
@@ -361,6 +373,162 @@ function insideWorkArea(win: Electron.BrowserWindow): boolean {
     bounds.x + bounds.width <= area.x + area.width &&
     bounds.y + bounds.height <= area.y + area.height
   );
+}
+
+/**
+ * Load run: keeps a real session alive under machine load, samples memory and CPU, hammers the
+ * persistence path and verifies that the state on disk survives the shutdown.
+ */
+async function runStress(): Promise<void> {
+  if (!controller || !logger) return;
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const minutes = Math.max(1, Number(process.env.STRESS_MINUTES ?? 3) || 3);
+  const totalMs = minutes * 60_000;
+  const sampleEveryMs = 5_000;
+  const results: Array<{ name: string; ok: boolean; detail?: string }> = [];
+  const samples: Array<Record<string, number | boolean | null>> = [];
+  const record = (name: string, ok: boolean, detail?: string): void => {
+    results.push({ name, ok, ...(detail === undefined ? {} : { detail }) });
+  };
+
+  const userDataDir = app.getPath('userData');
+  const settingsFile = join(userDataDir, 'settings.json');
+  const sessionFile = join(userDataDir, 'session.json');
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
+
+  // Keep the lid policy untouched: the run exercises keep-awake, not lid protection.
+  await controller.updateSettings({ lidGuardPreferred: false, softStopEnabled: false });
+
+  const activated = await controller.activate(null, { silent: true });
+  record('stress.session-activate', activated.ok, JSON.stringify(activated));
+
+  const loadProcesses: Array<{ kill: () => void }> = [];
+  for (let index = 0; index < 2; index += 1) {
+    const child = spawn(
+      process.execPath,
+      ['-e', 'const end = Date.now() + 1000000; while (Date.now() < end) { Math.sqrt(Math.random()); }'],
+      { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, stdio: 'ignore' },
+    );
+    loadProcesses.push({ kill: () => child.kill() });
+  }
+
+  let lastSample = Date.now();
+  let settingsWrites = 0;
+  let lastSettingsMtime = 0;
+  let lastSessionMtime = 0;
+  let elapsed = 0;
+
+  try {
+    while (elapsed < totalMs) {
+      await wait(sampleEveryMs);
+      elapsed = Date.now() - startedAtMs;
+
+      const now = Date.now();
+      const metrics = app.getAppMetrics();
+      const treeRssKb = metrics.reduce((sum, metric) => sum + metric.memory.workingSetSize, 0);
+      const appCpuPercent = metrics.reduce((sum, metric) => sum + metric.cpu.percentCPUUsage, 0);
+      const sampleGapMs = now - lastSample;
+      lastSample = now;
+
+      // Persistence churn: every sample writes settings and reads the file back.
+      await controller.updateSettings({ lastDurationMs: 15 * 60_000 });
+      settingsWrites += 1;
+      const settingsStat = safeStat(settingsFile);
+      const sessionStat = safeStat(sessionFile);
+      if (settingsStat && settingsStat.mtimeMs > lastSettingsMtime) lastSettingsMtime = settingsStat.mtimeMs;
+      if (sessionStat && sessionStat.mtimeMs > lastSessionMtime) lastSessionMtime = sessionStat.mtimeMs;
+
+      samples.push({
+        elapsedMs: elapsed,
+        treeRssMb: Math.round((treeRssKb / 1024) * 10) / 10,
+        appCpuPercent: Math.round(appCpuPercent * 10) / 10,
+        sampleGapMs,
+        sessionActive: controller.getState().session.active,
+        helperConnected: controller.getState().capabilities.helperConnected,
+      });
+
+      if (controller.getState().session.active === false && elapsed > sampleEveryMs * 2) {
+        record('stress.session-survived', false, `session ended after ${elapsed} ms`);
+        break;
+      }
+    }
+  } finally {
+    for (const child of loadProcesses) child.kill();
+  }
+
+  record('stress.session-survived', controller.getState().session.active === true, 'keep-awake session still active');
+  const coveredMs = samples.length > 0 ? Number(samples[samples.length - 1].elapsedMs ?? 0) : 0;
+  record('stress.duration-covered', coveredMs >= totalMs && samples.length >= 3, `${coveredMs} ms of ${totalMs} ms in ${samples.length} samples`);
+  const maxGapMs = samples.reduce((max, sample) => Math.max(max, Number(sample.sampleGapMs ?? 0)), 0);
+  record('stress.sample-cadence', maxGapMs < 30_000, `largest gap ${maxGapMs} ms`);
+  record('stress.helper-alive', controller.getState().capabilities.helperConnected === true, 'power helper still connected');
+  record('stress.settings-written', settingsWrites >= 3, `${settingsWrites} writes`);
+  record('stress.settings-mtime', lastSettingsMtime > 0, `last mtime=${lastSettingsMtime}`);
+
+  const settingsParsed = safeParse(settingsFile);
+  record('stress.settings-valid', settingsParsed !== null, 'settings.json parses');
+  const sessionParsed = safeParse(sessionFile);
+  record(
+    'stress.session-valid',
+    sessionParsed !== null && typeof sessionParsed === 'object',
+    'session.json parses',
+  );
+
+  const peakRss = samples.reduce((max, sample) => Math.max(max, Number(sample.treeRssMb ?? 0)), 0);
+  const peakCpu = samples.reduce((max, sample) => Math.max(max, Number(sample.appCpuPercent ?? 0)), 0);
+  record('stress.memory-bounded', peakRss > 0 && peakRss < 600, `peak tree RSS ${peakRss} MB`);
+  record('stress.cpu-bounded', peakCpu < 60, `peak app CPU ${peakCpu}%`);
+
+  if (controller.getState().session.active) await controller.deactivate('manual');
+  // An inactive session is not persisted: the store deletes the file instead of leaving a stale
+  // session behind, so "no session file" is the correct end state here.
+  const sessionFileExists = existsSync(sessionFile);
+  const afterQuit = safeParse(sessionFile);
+  record(
+    'stress.shutdown-persisted',
+    !sessionFileExists ||
+      (afterQuit !== null &&
+        (afterQuit as { session?: { active?: boolean } }).session?.active !== true),
+    sessionFileExists ? 'session file still present but not active' : 'session file removed on deactivate',
+  );
+
+  const ok = results.every((result) => result.ok);
+  const report = {
+    ok,
+    ranAt: startedAt,
+    minutes,
+    samples,
+    results,
+    peakTreeRssMb: peakRss,
+    peakAppCpuPercent: peakCpu,
+    maxSampleGapMs: maxGapMs,
+    settingsWrites,
+  };
+  logger.info('stress result', { ok, samples: samples.length });
+  writeFileSync(join(appRoot, 'docs', 'stress.json'), `${JSON.stringify(report, null, 2)}\n`);
+  console.log(JSON.stringify(report, null, 2));
+  await controller.shutdown();
+  tray?.destroy();
+  windows?.destroyAll();
+  app.exit(ok ? 0 : 1);
+}
+
+function safeStat(file: string): { mtimeMs: number; size: number } | null {
+  try {
+    const stat = statSync(file);
+    return { mtimeMs: stat.mtimeMs, size: stat.size };
+  } catch {
+    return null;
+  }
+}
+
+function safeParse(file: string): unknown {
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 async function runFreshSmoke(): Promise<void> {
@@ -873,7 +1041,7 @@ async function runSmoke(): Promise<void> {
 }
 
 
-if (captureMode || smokeMode || freshMode) {
+if (captureMode || smokeMode || freshMode || stressMode) {
   app.whenReady().then(bootstrap).catch((error) => {
     console.error(error);
     app.exit(1);

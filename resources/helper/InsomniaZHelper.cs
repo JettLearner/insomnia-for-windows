@@ -17,12 +17,12 @@ using Accessibility;
 [assembly: AssemblyTitle("InsomniaZ Power Helper")]
 [assembly: AssemblyDescription("Keeps Windows awake, manages the lid power policy and drives the GUI fallback for InsomniaZ.")]
 [assembly: AssemblyProduct("InsomniaZ")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
 
 internal static class InsomniaZHelper
 {
-    private const string Version = "1.1.0";
+    private const string Version = "1.2.0";
     private const uint ES_CONTINUOUS = 0x80000000u;
     private const uint ES_SYSTEM_REQUIRED = 0x00000001u;
     private const uint ES_DISPLAY_REQUIRED = 0x00000002u;
