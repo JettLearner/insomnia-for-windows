@@ -3,6 +3,11 @@
 > InsomniaZ for Windows 1.2.0 · 中文版：[autopilot.zh-CN.md](autopilot.zh-CN.md)
 > Source: `shared/autopilot.ts`, `shared/autopilot-ui.ts`, `electron/core/autopilot-*.ts`, `src/routes/Autopilot.tsx`
 
+> **Internal feature — not part of the published build.** The code stays in the repository, but the
+> tray entry and the panel button are hidden and the scheduler does not start unless the app is
+> launched with `INSOMNIAZ_AUTOPILOT=1`. This document is kept for development; it is not linked
+> from the README and not part of the release notes.
+
 Autopilot is a background scheduler that delivers a complete prompt — with attachments, model,
 thinking level, parameters and target conversation — into a desktop AI chat app at the time you
 choose. The target app does **not** need to be in the foreground, and Autopilot does not preselect a

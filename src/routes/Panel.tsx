@@ -25,7 +25,7 @@ const DURATION_LABELS: Array<{ ms: number; key: MessageKey }> = [
 ];
 
 export function Panel() {
-  const { state, run, busy } = useRuntime();
+  const { state, run, busy, bootstrap } = useRuntime();
   const t = useT();
   const api = getApi();
   const { session, settings, capabilities, power } = state;
@@ -339,14 +339,16 @@ export function Panel() {
             <Sliders size={14} />
             {t('openSettings')}
           </button>
-          <button
-            type="button"
-            className="footer-action"
-            onClick={() => void api?.showAutopilot()}
-          >
-            <Clock size={14} />
-            {t('autopilotOpen')}
-          </button>
+          {bootstrap.autopilotEnabled ? (
+            <button
+              type="button"
+              className="footer-action"
+              onClick={() => void api?.showAutopilot()}
+            >
+              <Clock size={14} />
+              {t('autopilotOpen')}
+            </button>
+          ) : null}
           <div className="shortcut-chip">
             <span>{t('shortcutHint')}</span>
             <Keycaps accelerator={settings.shortcut} />

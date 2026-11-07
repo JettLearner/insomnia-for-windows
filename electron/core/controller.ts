@@ -49,6 +49,7 @@ interface ControllerOptions {
   recoveryPath: string;
   helperLog: string;
   logger: Logger;
+  autopilotEnabled?: boolean;
 }
 
 type DeactivateReason = 'manual' | 'expired' | 'low-battery' | 'unplugged' | 'shutdown' | 'soft-stop';
@@ -291,7 +292,13 @@ export class Controller extends EventEmitter {
         node: process.versions.node,
       },
       platform: 'win32',
+      autopilotEnabled: this.isAutopilotEnabled(),
     };
+  }
+
+  /** Autopilot is hidden unless it was explicitly enabled for this launch. */
+  isAutopilotEnabled(): boolean {
+    return this.options.autopilotEnabled === true;
   }
 
   private getDisplays(): DisplayInfo {

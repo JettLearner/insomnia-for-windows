@@ -1,6 +1,6 @@
 # InsomniaZ for Windows
 
-> Keep your PC awake — even with the lid closed. Keep your AI tasks on schedule.
+> Keep your PC awake — even with the lid closed.
 > An independent Windows port of the macOS menu-bar app **InsomniaZ – Never Sleep**. Not affiliated with the original author.
 
 **English** · [中文](README.zh-CN.md)
@@ -10,20 +10,18 @@
   <img src="docs/captures/packaged-onboarding-final.png" alt="First-run onboarding" width="300">
 </p>
 
-A tray-first app: no window takes a taskbar slot except the Autopilot editor, closing a window only
-hides it, and quitting is done from the tray. Everything the original menu-bar icon did with click,
-long-press and right-click now lives in the tray: left-click opens the control panel, right-click
-opens the full native menu, long-pressing the status ring opens Settings.
+A tray-first app: no window takes a taskbar slot, closing a window only hides it, and quitting is
+done from the tray. Everything the original menu-bar icon did with click, long-press and right-click
+now lives in the tray: left-click opens the control panel, right-click opens the full native menu,
+long-pressing the status ring opens Settings.
 
 - **1.1.0** added **Soft Stop**: at battery threshold A it sends a fixed prompt to the AI that is
   still running; at the lower threshold B it ends the session and sleeps protectively. Local
   runtimes, OpenAI-compatible endpoints, webhooks, CLI, plus GUI recognition and mouse teaching for
   apps without an API.
-- **1.2.0** adds **Autopilot**: a background scheduler that delivers a full prompt — attachments,
-  model, thinking level, parameters, target conversation — into ZCode or WorkBuddy at any time you
-  choose, in a freely resizable native window. It syncs the live model and conversation lists,
-  retries from a built-in error catalog, falls back to local Ollama or an emergency API, and hides
-  itself and defers GUI automation whenever recording, remote control or high load is detected.
+- **1.2.0** is a maintenance release: every user-facing document is now available in English and
+  Chinese, and the historical design, acceptance and review records were moved into one archive
+  folder.
 
 ## Download
 
@@ -41,8 +39,7 @@ Installers and the portable build are published on [GitHub Releases](../../relea
 - Lid-close protection needs administrator approval. Declining UAC does not affect the other
   keep-awake features; the UI clearly marks lid protection as unavailable.
 - The app does not phone home and does not check for updates. It only contacts a remote address
-  when you explicitly enable a remote Soft Stop endpoint or the remote Autopilot fallback.
-  New versions must be downloaded manually.
+  when you explicitly enable a remote Soft Stop endpoint. New versions must be downloaded manually.
 
 ## Features
 
@@ -62,7 +59,7 @@ Installers and the portable build are published on [GitHub Releases](../../relea
 - **Global shortcut** — `Ctrl+Alt+I` by default; record your own, restore the default, and get an
   explicit warning on conflict.
 - **Full tray menu** — toggle, duration, display mode, lid protection, activity simulation, panel,
-  Autopilot, settings, about, compatibility check, quit.
+  settings, about, compatibility check, quit.
 - **Appearance and language** — English/Chinese, dark/light/system, compact layout, notifications.
 
 ### Soft Stop (1.1.0)
@@ -74,33 +71,6 @@ webhooks, CLI and a GUI fallback. Apps without an API are driven through UI Auto
 dry-run preview, a whitelist and first-run confirmation. Teaching records **only mouse clicks and
 hovers — never typed text**. See the [Soft Stop guide](docs/soft-stop.md).
 
-### Autopilot (1.2.0)
-
-- **Scheduled delivery** into ZCode, WorkBuddy, any matched window, or a fallback-only route.
-  Manual, once, daily, weekly (with a weekday picker) or every N minutes, plus a catch-up policy for
-  missed runs.
-- **Per-task model, thinking level and parameters.** Thinking is a five-position ring
-  (Off/Low/Medium/High/Max); in ZCode it is stepped with `Ctrl+T` and read back to confirm.
-- **Live catalog sync.** Models and conversations are collected from the running app and merged
-  with a built-in seed catalog. When ZCode hides models because the account is out of quota, the
-  list is refreshed *before* a model is chosen.
-- **Three-level control location** — MSAA name/role, then OCR label, then window-relative ratio
-  anchors, so non-maximised windows, multi-monitor setups and DPI changes all work.
-- **Attachments with an original-path rule** — validate, search for moved files, back up optionally,
-  and always **restore a backup into the original directory before the model reads the original
-  path**. Missing files are skipped with a note appended to the prompt.
-- **Built-in error catalog and retries** — each code has its own attempt limit, backoff and terminal
-  action; at most two send clicks per run, then the task is blocked rather than risking a duplicate.
-- **Emergency fallback** — local Ollama first, then an OpenAI-compatible endpoint (off by default,
-  key required, DPAPI-encrypted).
-- **Protection gate** — on recording, remote control or high CPU load the Autopilot window is hidden
-  completely and GUI delivery is deferred, with a 20 s cooldown.
-- **Adaptive real-time saving** — edits survive the window being hidden, minimised or closed;
-  state is flushed on suspend and shutdown.
-
-See the [Autopilot guide](docs/autopilot.md). **Autopilot has no dry-run and no whitelist: it really
-clicks send.** Use *Run now* attended the first time.
-
 ## Interaction mapping
 
 | macOS menu bar | Windows |
@@ -108,7 +78,7 @@ clicks send.** Use *Run now* attended the first time.
 | Left-click opens the popover | Left-click the tray icon opens the control panel (can be disabled) |
 | Right-click menu | Right-click the tray icon opens the full native menu |
 | Icon tint / grey-out | `tray-active.png` / `tray-idle.png`; tooltip shows remaining time |
-| No Dock icon | All windows use `skipTaskbar`, except the Autopilot editor which is a normal window |
+| No Dock icon | All windows use `skipTaskbar` |
 | Long-press the status ring | Hold the ring for 550 ms to open Settings |
 | Global shortcut | `Ctrl+Alt+I` toggles the session |
 | — | Closing Settings brings the control panel back |
@@ -126,9 +96,7 @@ clicks send.** Use *Run now* attended the first time.
    **Scan windows**, then decide whether to allow unattended sending.
 8. When the dictionary misreads an app, use **Start recording**: click the input box, hover the send
    button, stop, then confirm or edit the suggested labels and save the profile.
-9. For scheduled delivery: open **Autopilot** from the panel footer or tray, start the target app
-   yourself, sync models, create a task and watch the first **Run now**.
-10. Closing the panel only hides it. To quit, use the panel's Quit button or the tray menu.
+9. Closing the panel only hides it. To quit, use the panel's Quit button or the tray menu.
 
 ## Why administrator rights are needed
 
@@ -143,24 +111,20 @@ and no scheduled task. The elevated helper runs only while lid protection is on:
 - a normal exit deletes `%APPDATA%\InsomniaZ\lid-recovery.json`.
 
 If you decline UAC, sleep prevention, display mode, timers and shortcuts still work — only lid
-protection is unavailable. The Autopilot helper `InsomniaZAuto.exe` does **not** need elevation.
+protection is unavailable.
 
 ## Privacy and security
 
-- Settings, sessions and logs live in `%APPDATA%\InsomniaZ\`; Autopilot data lives in
-  `%APPDATA%\InsomniaZ\autopilot\`. No other registry location is written (except startup, which you
-  enable yourself).
+- Settings, sessions and logs live in `%APPDATA%\InsomniaZ\`. No other registry location is written
+  (except startup, which you enable yourself).
 - The original lid value is backed up to `lid-recovery.json` and deleted on normal exit.
 - Diagnostics export contains only version, power capability, state and logs, and is user-triggered.
 - No remote requests by default. Soft Stop only contacts loopback endpoints; remote endpoints
-  require an explicit opt-in. Autopilot's fallback prefers local Ollama and never sends it an
-  `Authorization` header; the remote channel needs both opt-in and a stored key.
+  require an explicit opt-in.
 - API keys are DPAPI-encrypted. Logs and audits never contain keys or prompt text.
 - AI detection reads only process names, ports, adapters and throughput. Teaching installs no
   keyboard hook and records no typed content. Screenshots are taken only on explicit opt-in, and
   only of the selected window.
-- Attachment search reads names, sizes and a 64 KiB hash; a known file is only matched by name
-  **plus** size or hash, so an unrelated namesake is never delivered.
 - The renderer uses `contextIsolation`, `sandbox`, no `nodeIntegration` and a strict CSP; DevTools
   are disabled in production.
 
@@ -173,10 +137,9 @@ Current 1.2.0 baseline on Windows 10 22H2 (19045, x64):
 | Item | Result |
 |---|---|
 | Type check (main + renderer + tests) | Pass |
-| Vitest unit/integration | **302 tests in 22 files pass**, including real helper processes, real HTTP sockets, scheduler/catch-up, the error catalog, fallback channels and the protection gate |
+| Vitest unit/integration | **304 tests in 23 files pass** — real helper processes, real HTTP sockets, the Soft Stop state machine, GUI recognition and the teaching recorder |
 | Production build (main + renderer + both helpers) | Pass |
 | Real Electron smoke | **Not re-run for 1.2.0.** The last full run was 44/44 on 1.1.0; re-running it would touch the system power policy while a protected session is active |
-| Real ZCode / WorkBuddy delivery | Control maps were recorded from the real apps and are covered by unit tests; an attended end-to-end delivery on 1.2.0 is still outstanding |
 | Protective sleep | Implemented and unit-tested; **not executed on the real machine**, to avoid interrupting running work |
 | Lid policy write/restore | Elevation, write and exit-restore verified on real hardware; physical lid close untested |
 
@@ -186,10 +149,6 @@ byte-identical payload, teaching with `leakedPrompt=false`) is kept in the
 
 ## Known limitations
 
-- **Autopilot clicks for real** — no dry-run, no whitelist, no confirmation gate. The target app must
-  already be running and visible; nothing auto-launches it.
-- **Fallback answers are not returned** to the target app, and images are dropped on the remote API
-  channel (Ollama only).
 - **Physical lid close untested** — elevation, policy write and exit-restore are verified, but the
   lid was never actually closed, nor was AC unplugged while closed.
 - **Protective sleep never executed on real hardware** — verify the local path with **Sleep now**
@@ -269,7 +228,6 @@ from the winCodeSign package downloaded by electron-builder and is not distribut
 
 | Topic | English | 中文 |
 |---|---|---|
-| Autopilot guide | [docs/autopilot.md](docs/autopilot.md) | [docs/autopilot.zh-CN.md](docs/autopilot.zh-CN.md) |
 | Soft Stop guide | [docs/soft-stop.md](docs/soft-stop.md) | [docs/soft-stop.zh-CN.md](docs/soft-stop.zh-CN.md) |
 | Release notes 1.2.0 | [docs/release-notes-v1.2.0.md](docs/release-notes-v1.2.0.md) | [docs/release-notes-v1.2.0.zh-CN.md](docs/release-notes-v1.2.0.zh-CN.md) |
 | Publishing checklist | [docs/publishing.md](docs/publishing.md) | [docs/publishing.zh-CN.md](docs/publishing.zh-CN.md) |

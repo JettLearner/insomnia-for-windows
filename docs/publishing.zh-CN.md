@@ -3,7 +3,7 @@
 > 维护者文档。以下命令尚未执行；创建公开仓库或 Release 前，请先获得明确授权。
 > English: [publishing.md](publishing.md)
 
-当前目标版本：**1.2.0**（含 Autopilot）。
+当前目标版本：**1.2.0**（维护版本）。
 
 ## 1. 发布物
 
@@ -28,7 +28,7 @@
 ### 2.1 自动化验证
 
 - [ ] `npm run typecheck` 通过（当前基线：0 错误）。
-- [ ] `npm test` 通过（当前基线：**22 个文件 302 测试**）。
+- [ ] `npm test` 通过（当前基线：**23 个文件 304 测试**）。
 - [ ] `npm run build` 通过（主进程、渲染层、`InsomniaZHelper.exe`、`InsomniaZAuto.exe`）。
 - [ ] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项。
   - 注意：`--smoke` 与 `npm run capture` 会改动**真实系统电源策略**。合盖保护生效期间不要跑。
@@ -36,30 +36,27 @@
 
 ### 2.2 实机验证（尚未完成，不得跳过）
 
-- [ ] ZCode 有人值守端到端投递：模型同步 → 选模型 → 设思考强度 → 发送 → 落盘回读一致。
-- [ ] WorkBuddy 有人值守端到端投递（PrintWindow + WinRT OCR 路径）。
-- [ ] 压测：调度并发、长时间运行、负载下的保存节流、掉电/休眠前落盘。
-- [ ] 三项完成后才允许打包二进制。
+- [ ] 压测：长时间运行、负载下的保存节流、掉电/休眠前落盘。
+- [ ] 两项完成后才允许打包二进制。
 
 ### 2.3 隐私与配置
 
 - [ ] 仓库不含用户名、主机名、个人路径、日志、API Key、提示词正文或原应用商店素材。
 - [ ] `docs/assets/`、`docs/appstore.json`、`.scratch/`、`build-out*/`、`release-*/` 均已在 `.gitignore` 中。
 - [ ] 发布用二进制来自本次构建的 `win-unpacked`（不要复用 `release/win-unpacked`，那是仍在运行的旧版本）。
-- [ ] `%APPDATA%\InsomniaZ\` 下的软叫停与 Autopilot 数据（profile、审计、目录、密钥）不得进仓库。
+- [ ] `%APPDATA%\InsomniaZ\` 下的软叫停数据（profile、审计、已存密钥）不得进仓库。
 
 ### 2.4 产物一致性
 
 - [ ] `release/SHA256SUMS.txt` 与实际文件一致（在 `release/` 目录内执行 `sha256sum -c SHA256SUMS.txt`）。
 - [ ] `release/README.md` 与 `docs/release-notes-v1.2.0.md` 说的是同一件事：文件清单、校验方法、限制说明。
 - [ ] 安装包与便携版的版本资源为 1.2.0（`rcedit` 写入后回读确认）。
-- [ ] README 中的截图路径存在；截图 zip 收录最新面板、引导、设置与 Autopilot 截图。
+- [ ] README 中的截图路径存在；截图 zip 收录最新面板、引导与设置截图。
 
 ### 2.5 对用户的说明
 
 - [ ] 明确告知：未签名、SmartScreen 会提示未知发布者。
 - [ ] 明确告知：物理合盖行为未实测、保护性休眠未在真机执行。
-- [ ] 明确告知：Autopilot **没有 dry-run / 白名单 / 确认闸门**，会真的点击发送。
 - [ ] 明确告知：便携版不支持开机启动。
 
 ### 2.6 法务与元信息

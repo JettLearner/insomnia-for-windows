@@ -3,6 +3,10 @@
 > InsomniaZ for Windows 1.2.0 · English: [autopilot.md](autopilot.md)
 > 相关源码：`shared/autopilot.ts`、`shared/autopilot-ui.ts`、`electron/core/autopilot-*.ts`、`src/routes/Autopilot.tsx`
 
+> **内部功能，不随发布版提供。** 代码保留在仓库中，但托盘入口与面板按钮默认隐藏，调度器也不会启动，
+> 只有以 `INSOMNIAZ_AUTOPILOT=1` 启动应用时才会启用。本文档仅供开发使用：README 不再链接它，
+> 发布说明也不包含它。
+
 Autopilot 是一个后台常驻的调度器：到点后把一段完整提示词连同附件、模型、思考强度、参数与目标会话，
 投递进桌面 AI 聊天应用。目标应用**不需要**处于前台；除非任务里写明，否则 Autopilot 不会替你预选模型或会话。
 

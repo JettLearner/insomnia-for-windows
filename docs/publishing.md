@@ -4,7 +4,7 @@
 > authorization before creating a public repository or a Release.
 > 中文：[publishing.zh-CN.md](publishing.zh-CN.md)
 
-Target version: **1.2.0** (adds Autopilot).
+Target version: **1.2.0** (maintenance release).
 
 ## 1. Release assets
 
@@ -31,7 +31,7 @@ published**.
 ### 2.1 Automated verification
 
 - [ ] `npm run typecheck` passes (current baseline: 0 errors).
-- [ ] `npm test` passes (current baseline: **302 tests in 22 files**).
+- [ ] `npm test` passes (current baseline: **304 tests in 23 files**).
 - [ ] `npm run build` passes (main process, renderer, `InsomniaZHelper.exe`, `InsomniaZAuto.exe`).
 - [ ] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures.
   - Note: `--smoke` and `npm run capture` change the **real system power policy**. Do not run
@@ -41,12 +41,9 @@ published**.
 
 ### 2.2 On-hardware verification (still open — do not skip)
 
-- [ ] Attended ZCode end-to-end delivery: model sync → model selection → thinking level → send →
-    the landed text matches the prompt.
-- [ ] Attended WorkBuddy end-to-end delivery (PrintWindow + WinRT OCR path).
-- [ ] Stress run: scheduler concurrency, long-running behaviour, throttled saving under load,
-      flush before suspend and shutdown.
-- [ ] Only after all three may binaries be built.
+- [ ] Stress run: long-running sessions, throttled saving under load, flush before suspend and
+      shutdown.
+- [ ] Only after both may binaries be built.
 
 ### 2.3 Privacy and configuration
 
@@ -56,8 +53,8 @@ published**.
       `.gitignore`.
 - [ ] The published binaries come from the `win-unpacked` directory produced by this build — do
       not reuse `release/win-unpacked`, which is a still-running older version.
-- [ ] Soft Stop and Autopilot data under `%APPDATA%\InsomniaZ\` (profiles, audit trail, catalog,
-      keys) stays out of the repository.
+- [ ] Soft Stop data under `%APPDATA%\InsomniaZ\` (profiles, audit trail, stored keys) stays out
+      of the repository.
 
 ### 2.4 Artifact consistency
 
@@ -67,13 +64,12 @@ published**.
       verification method, limitation notes.
 - [ ] The version resources of installer and portable exe read 1.2.0 (verify after `rcedit`).
 - [ ] The screenshot paths in the README exist; the screenshot zip contains the current panel,
-      onboarding, settings and Autopilot shots.
+      onboarding and settings shots.
 
 ### 2.5 What the user must be told
 
 - [ ] Unsigned; SmartScreen shows an unknown publisher.
 - [ ] Physical lid close is untested and protective sleep was never executed on real hardware.
-- [ ] Autopilot has **no dry-run, whitelist or confirmation gate** — it really clicks send.
 - [ ] The portable edition does not support launch on startup.
 
 ### 2.6 Legal and metadata

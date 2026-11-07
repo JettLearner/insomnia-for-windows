@@ -16,7 +16,7 @@ guides in [`docs/`](../docs).
 | [`specs/03-ui-spec.md`](specs/03-ui-spec.md) | UI 规范与 macOS → Windows 交互映射 | Yes |
 | [`specs/04-acceptance.md`](specs/04-acceptance.md) | v1.0.0 验收报告与真机证据 | Yes |
 | [`specs/05-review.md`](specs/05-review.md) | 设计、代码与安全评审 | Yes |
-| [`specs/08-autopilot-design.md`](specs/08-autopilot-design.md) | v1.2.0 Autopilot 实施前设计定稿 | Yes |
+| [`specs/08-autopilot-design.md`](specs/08-autopilot-design.md) | 内部调度器的实施前设计定稿（该功能未随发布版提供） | Yes |
 | [`release-history/`](release-history) | v1.0.0 / v1.1.0 发布说明（中文历史件） | Yes |
 | `probes/` | MSAA/UIA 侦察脚本与原始输出 | **No** |
 | `winrt-scratch/` | WinRT OCR 试验代码与 dump | **No** |
@@ -31,11 +31,17 @@ machine, so they are gitignored and never published.
 | Topic | English | 中文 |
 |---|---|---|
 | Overview & download | [README.md](../README.md) | [README.zh-CN.md](../README.zh-CN.md) |
-| Autopilot scheduled delivery | [docs/autopilot.md](../docs/autopilot.md) | [docs/autopilot.zh-CN.md](../docs/autopilot.zh-CN.md) |
 | Soft Stop | [docs/soft-stop.md](../docs/soft-stop.md) | [docs/soft-stop.zh-CN.md](../docs/soft-stop.zh-CN.md) |
 | Release notes v1.2.0 | [docs/release-notes-v1.2.0.md](../docs/release-notes-v1.2.0.md) | [docs/release-notes-v1.2.0.zh-CN.md](../docs/release-notes-v1.2.0.zh-CN.md) |
 | Publishing checklist | [docs/publishing.md](../docs/publishing.md) | [docs/publishing.zh-CN.md](../docs/publishing.zh-CN.md) |
 | Security policy | [SECURITY.md](../SECURITY.md) | [SECURITY.zh-CN.md](../SECURITY.zh-CN.md) |
+
+The Autopilot guide ([docs/autopilot.md](../docs/autopilot.md) ·
+[中文](../docs/autopilot.zh-CN.md)) documents an **internal feature that is not part of the published
+build**. It is kept for development only and is not linked from the README or the release notes.
+
+Autopilot 指南（[docs/autopilot.md](../docs/autopilot.md) · [中文](../docs/autopilot.zh-CN.md)）
+描述的是**未随发布版提供的内部功能**，仅供开发参考，README 与发布说明都不再链接它。
 
 ## Reading these records / 阅读须知
 

@@ -112,6 +112,7 @@ export interface Bootstrap {
   dataDir: string;
   versions: { electron: string; chrome: string; node: string };
   platform: 'win32';
+  autopilotEnabled: boolean;
 }
 
 export interface CommandResult {

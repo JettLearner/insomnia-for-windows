@@ -236,6 +236,7 @@ export class WindowManager {
   }
 
   showAutopilot(): void {
+    if (!this.options.controller.isAutopilotEnabled()) return;
     const win = this.createAutopilot();
     if (win.isMinimized()) win.restore();
     win.show();

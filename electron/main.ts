@@ -10,6 +10,7 @@ import { TrayController } from './core/tray';
 import { ShortcutManager } from './core/shortcuts';
 import { Logger } from './core/logger';
 import { installNetGuard } from './core/net-guard';
+import { isAutopilotEnabled } from './core/feature-flags';
 import { registerIpc } from './core/ipc';
 import type { WindowName } from '../shared/types';
 
@@ -17,6 +18,9 @@ const captureMode = process.argv.includes('--capture');
 const smokeMode = process.argv.includes('--smoke');
 const freshMode = process.argv.includes('--smoke-fresh');
 const devUrl = process.env.VITE_DEV_SERVER_URL ?? null;
+// Autopilot is not part of the published build; it only runs when explicitly enabled for this
+// launch, or during the internal screenshot capture.
+const autopilotEnabled = isAutopilotEnabled(process.env) || captureMode;
 
 const appRoot = app.getAppPath();
 if (captureMode) app.setPath('userData', join(appRoot, 'docs', '.capture-profile'));
@@ -83,6 +87,7 @@ async function bootstrap(): Promise<void> {
     recoveryPath: join(userDataDir, 'lid-recovery.json'),
     helperLog: join(userDataDir, 'helper.log'),
     logger,
+    autopilotEnabled,
   });
 
   shortcuts = new ShortcutManager(() => {
@@ -163,9 +168,13 @@ async function bootstrap(): Promise<void> {
 
   // UI acceptance runs must never trigger real deliveries on a live desktop.
   if (!captureMode && !smokeMode && !freshMode) {
-    autopilot.start();
-    powerMonitor.on('suspend', () => autopilot?.flush());
-    powerMonitor.on('shutdown', () => autopilot?.flush());
+    if (autopilotEnabled) {
+      autopilot.start();
+      powerMonitor.on('suspend', () => autopilot?.flush());
+      powerMonitor.on('shutdown', () => autopilot?.flush());
+    } else {
+      logger.info('autopilot disabled for this launch');
+    }
   }
 
   if (!settings.onboardingComplete) {
