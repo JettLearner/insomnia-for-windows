@@ -20,8 +20,8 @@ const freshMode = process.argv.includes('--smoke-fresh');
 const stressMode = process.argv.includes('--stress');
 const devUrl = process.env.VITE_DEV_SERVER_URL ?? null;
 // Autopilot is not part of the published build; it only runs when explicitly enabled for this
-// launch, or during the internal screenshot capture.
-const autopilotEnabled = isAutopilotEnabled(process.env) || captureMode;
+// launch. Screenshot capture follows the same rule so published shots never show the feature.
+const autopilotEnabled = isAutopilotEnabled(process.env);
 
 const appRoot = app.getAppPath();
 if (captureMode) app.setPath('userData', join(appRoot, 'docs', '.capture-profile'));
@@ -284,18 +284,21 @@ async function runCapture(): Promise<void> {
   }
 
   // The autopilot window is a separate native-shell window; capture its two
-  // primary states without persisting anything.
-  windows.showAutopilot();
-  await wait(900);
-  await capture('autopilot-jobs-en', 'autopilot', 0);
-  await windows.getWindow('autopilot')?.webContents.executeJavaScript(`(() => {
-    const button = [...document.querySelectorAll('.ap-btn')].find((el) => el.textContent === 'New task');
-    if (!button) return false;
-    button.click();
-    return true;
-  })()`);
-  await wait(450);
-  await capture('autopilot-editor-en', 'autopilot', 0);
+  // primary states without persisting anything. Internal only: skipped unless
+  // the feature was explicitly enabled for this launch.
+  if (autopilotEnabled) {
+    windows.showAutopilot();
+    await wait(900);
+    await capture('autopilot-jobs-en', 'autopilot', 0);
+    await windows.getWindow('autopilot')?.webContents.executeJavaScript(`(() => {
+      const button = [...document.querySelectorAll('.ap-btn')].find((el) => el.textContent === 'New task');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(450);
+    await capture('autopilot-editor-en', 'autopilot', 0);
+  }
 
   await controller.updateSettings({ theme: 'light' });
   windows.openSettings('general');

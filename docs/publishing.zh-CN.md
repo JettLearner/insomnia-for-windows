@@ -32,7 +32,7 @@
 - [x] `npm run build` 通过（主进程、渲染层、`InsomniaZHelper.exe`、`InsomniaZAuto.exe`）。
 - [x] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项——**2026-11-07 实测 44/44**。
   - 注意：`--smoke` 与 `npm run capture` 会改动**真实系统电源策略**。合盖保护生效期间不要跑。
-- [ ] 冒烟结果写回 `docs/release-notes-v1.2.0.md` 的验证表。
+- [x] 冒烟结果已写回 `docs/release-notes-v1.2.0.md` 的验证表（44/44 冒烟与 12/12 压测两行）。
 
 ### 2.2 实机验证
 
@@ -41,35 +41,49 @@
       提权 helper 全程在线；停用后会话文件被清除。进程树内存峰值 486 MB，应用 CPU 峰值 8.6%。
       报告见 `docs/stress.json`。
 - [x] 冒烟与压测均为绿，可以打包二进制。
-- [ ] 打包安装包与实际发布仍需你明确放行。
+- [x] 安装包已按 2026-11-08「准备开源发布 GitHub」的放行构建：`build-out8/win-unpacked` → `rcedit`
+      写入 1.2.0 图标/版本 → `build-out8-installers`，再 staging 到 `release/`，附 `SHA256SUMS.txt`
+      与截图 zip。便携版已在真实桌面启动抽查（启动日志 `packaged:true`、helper 1.2.0 在线、面板渲染正常）。
+- [ ] 创建公开仓库、push 与创建 Release 仍需你明确放行。
 
 ### 2.3 隐私与配置
 
-- [ ] 仓库不含用户名、主机名、个人路径、日志、API Key、提示词正文或原应用商店素材。
-- [ ] `docs/assets/`、`docs/appstore.json`、`.scratch/`、`build-out*/`、`release-*/` 均已在 `.gitignore` 中。
-- [ ] 发布用二进制来自本次构建的 `win-unpacked`（不要复用 `release/win-unpacked`，那是仍在运行的旧版本）。
-- [ ] `%APPDATA%\InsomniaZ\` 下的软叫停数据（profile、审计、已存密钥）不得进仓库。
+- [x] 仓库不含用户名、主机名、个人路径、日志、API Key、提示词正文或原应用商店素材。2026-11-08 对工作区
+      **与全部历史提交**（`git rev-list --all` 上跑 `git grep`）扫描：零命中；历史中最大 blob 为 0.28 MB
+      的截图，二进制与 dump 从未进入历史。
+- [x] `docs/assets/`、`docs/appstore.json`、`.scratch/`、`build-out*/`、`release-*/` 均已在 `.gitignore` 中；
+      `git status --short --ignored` 列出的正是预期的本地目录。
+- [x] 发布用二进制来自本次构建的 `win-unpacked`（`build-out8/win-unpacked`），未复用 `release/win-unpacked`
+      （那是 1.0.0 的旧目录）。
+- [x] `%APPDATA%\InsomniaZ\` 下的软叫停数据（profile、审计、已存密钥）不进仓库；截图在隔离的
+      `docs/.capture-profile` profile 中采集。
 
 ### 2.4 产物一致性
 
-- [ ] `release/SHA256SUMS.txt` 与实际文件一致（在 `release/` 目录内执行 `sha256sum -c SHA256SUMS.txt`）。
-- [ ] `release/README.md` 与 `docs/release-notes-v1.2.0.md` 说的是同一件事：文件清单、校验方法、限制说明。
-- [ ] 安装包与便携版的版本资源为 1.2.0（`rcedit` 写入后回读确认）。
-- [ ] README 中的截图路径存在；截图 zip 收录最新面板、引导与设置截图。
+- [x] `release/SHA256SUMS.txt` 与实际文件一致（2026-11-08 在 `release/` 内执行 `sha256sum -c`，两项均 OK）。
+- [x] `release/README.md` 与 `docs/release-notes-v1.2.0.md` 说的是同一件事：文件清单、校验方法、限制说明；
+      发布说明已写入真实大小与 SHA-256。
+- [x] 安装包与便携版的版本资源为 1.2.0（`rcedit` 后用 `VersionInfo.FileVersion/ProductVersion` 回读）；
+      `Get-AuthenticodeSignature` 两者均为 `NotSigned`，与文档口径一致。
+- [x] README 中的截图路径存在；截图已于 2026-11-08 刷新到 v1.2.0（capture 模式不再强制启用未发布的
+      调度器），zip 收录 21 张最新面板、引导与设置截图。
 
 ### 2.5 对用户的说明
 
-- [ ] 明确告知：未签名、SmartScreen 会提示未知发布者。
-- [ ] 明确告知：物理合盖行为未实测、保护性休眠未在真机执行。
-- [ ] 明确告知：便携版不支持开机启动。
+- [x] 明确告知：未签名、SmartScreen 会提示未知发布者。中英 README、中英发布说明与 `release/README.md` 均已写明。
+- [x] 明确告知：物理合盖行为未实测、保护性休眠未在真机执行。同上四份文档均已写明。
+- [x] 明确告知：便携版不支持开机启动。同上四份文档均已写明。
 
 ### 2.6 法务与元信息
 
-- [ ] `LICENSE`（MIT）与 `SECURITY.md` / `SECURITY.zh-CN.md` 存在且内容正确。
-- [ ] 所有文档都有中英双版本且互相链接。
-- [ ] 声明中保留「与原作者无关联、不含原应用受版权保护素材」。
+- [x] `LICENSE`（MIT）与 `SECURITY.md` / `SECURITY.zh-CN.md` 存在且内容正确。
+- [x] 所有文档都有中英双版本且互相链接（2026-11-08 逐对核对）。
+- [x] 声明中保留「与原作者无关联、不含原应用受版权保护素材」。
 
 ## 3. 打包（需用户确认后再执行）
+
+已于 2026-11-08 执行，输出目录为 `build-out8` 与 `build-out8-installers`，产物已 staging 到 `release/`。
+以下为可复用命令：
 
 ```bash
 npm run build
@@ -96,7 +110,8 @@ cd release && sha256sum InsomniaZ-Windows-1.2.0-x64.exe InsomniaZ-Windows-1.2.0-
 
 ## 4. 提交与推送
 
-仓库已有本地提交历史（`git init` 已完成，**没有配置 remote**）。当前工作区有大量改动，提交前先自查：
+仓库已有本地提交历史（`git init` 已完成，**没有配置 remote**），发布准备提交之后工作区是干净的。
+再有新改动时提交前先自查：
 
 ```bash
 git status --short

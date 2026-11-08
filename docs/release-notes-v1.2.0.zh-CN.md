@@ -9,22 +9,28 @@ macOS 菜单栏应用 **InsomniaZ – Never Sleep** 的独立 Windows 移植版�
 
 **与原作者无关联，未包含原应用受版权保护的素材。**
 
-> **发布状态：已准备，未发布。** 两道验证闸门已于 2026-11-07 全部通过（见「验证」），但 1.2.0 的安装包
-> 尚未构建。本仓库没有任何内容被推送到 GitHub。
+> **发布状态：已准备，未发布。** 两道验证闸门已于 2026-11-07 全部通过；安装包已于 2026-11-08 构建、
+> 生成校验和并做启动抽查（见「验证」）。本仓库没有任何内容被推送到 GitHub；建仓库与建 Release
+> 仍需你明确放行。
 
 ## 下载
 
 | 文件 | 大小 | 用途 |
 |---|---:|---|
-| `InsomniaZ-Windows-1.2.0-x64.exe` | 待构建 | NSIS 安装版（推荐），按用户安装，可改目录 |
-| `InsomniaZ-Windows-1.2.0-portable.exe` | 待构建 | 便携版，单文件运行 |
-| `InsomniaZ-Windows-1.2.0-screenshots.zip` | 待构建 | 面板、引导与设置截图 |
-| `SHA256SUMS.txt` | — | 二进制校验和，打包时生成 |
+| `InsomniaZ-Windows-1.2.0-x64.exe` | 96.7 MB | NSIS 安装版（推荐），按用户安装，可改目录 |
+| `InsomniaZ-Windows-1.2.0-portable.exe` | 96.4 MB | 便携版，单文件运行 |
+| `InsomniaZ-Windows-1.2.0-screenshots.zip` | 3.0 MB | 面板、引导与设置截图（21 张） |
+| `SHA256SUMS.txt` | — | 二进制校验和，见下方 |
 | `README.md` | — | 双语下载与使用说明 |
 
 ### SHA-256
 
-二进制构建后生成；发布前把 `release/SHA256SUMS.txt` 的内容贴到此处。校验方式：
+```text
+d9720450d003535eac6047120a499ee0c2a57ff6a938b842b2914295d2ca7a59  InsomniaZ-Windows-1.2.0-x64.exe
+3910b56cc2e4ae267d1ca4718a04e0194cb4a0181216054e61bf11cede8e57ee  InsomniaZ-Windows-1.2.0-portable.exe
+```
+
+校验方式：
 
 ```powershell
 Get-FileHash .\InsomniaZ-Windows-1.2.0-x64.exe -Algorithm SHA256
@@ -74,10 +80,11 @@ Get-FileHash .\InsomniaZ-Windows-1.2.0-portable.exe -Algorithm SHA256
 | 生产构建 | **通过**——主进程、渲染层、`InsomniaZHelper.exe` 与自动化 helper |
 | 真实 Electron 冒烟 | **1.2.0 实测 44/44 通过**（2026-11-07），在真实桌面上做真实交互 |
 | 负载 / 压测 | **12/12 通过**——两个满载 CPU 进程下跑满 3 分钟窗口：36 次采样，最大间隔 5.1 秒，36 次设置写入期间文件始终可解析，helper 全程在线，停用后会话文件被清除。进程树内存峰值 486 MB，应用 CPU 峰值 8.6% |
+| 打包产物 | **2026-11-08 构建并启动抽查**——安装版与便携版版本资源均为 1.2.0，未签名（`NotSigned`）；便携版以 `packaged:true` 启动、连上 1.2.0 helper 并渲染出面板；`sha256sum -c` 通过 |
 | 保护性休眠 | 已实现并有单测；从未在真机执行 |
 | 合盖策略写入/还原 | 已在真机验证；物理合盖未测 |
 
-二进制仍需打包与生成校验和；真正发布还需要你明确放行。见[发布清单](publishing.zh-CN.md)。
+二进制已构建并生成校验和；真正发布还需要你明确放行。见[发布清单](publishing.zh-CN.md)。
 
 ## 已知限制
 

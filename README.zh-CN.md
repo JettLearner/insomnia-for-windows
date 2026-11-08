@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="docs/captures/panel-active-on-zh.png" alt="InsomniaZ 主面板" width="300">
-  <img src="docs/captures/packaged-onboarding-final.png" alt="首次启动引导" width="300">
+  <img src="docs/captures/onboarding-1-zh.png" alt="首次启动引导" width="300">
 </p>
 
 托盘优先的应用：所有窗口都不占任务栏；关闭窗口只是隐藏，退出由托盘菜单控制。
@@ -127,6 +127,7 @@ Windows 没有面向普通应用的“合盖不睡眠”开关，只能修改当
 | 生产构建（主进程 + 渲染层 + 两个 helper） | 通过 |
 | 真实 Electron 冒烟 | **1.2.0 实测 44/44 通过**（2026-11-07），在真实桌面上做真实交互 |
 | 压测 | **12/12 通过**——两个满载 CPU 进程下跑满 3 分钟窗口，36 次采样，最大间隔 5.1 秒，36 次设置写入期间文件始终可解析，helper 全程在线，停用后会话文件被清除。应用进程树内存峰值 486 MB，应用 CPU 峰值 8.6% |
+| 打包产物 | **2026-11-08 构建并启动抽查**——安装版与便携版版本资源均为 1.2.0、未签名；便携版以 `packaged:true` 启动、连上 1.2.0 helper 并渲染出面板；`sha256sum -c` 通过 |
 | 保护性休眠 | 已实现并通过单测；为避免中断正在跑的任务，**未在真机执行** |
 | 合盖策略真实写入/恢复 | 提权、写入、退出还原已在真机走通；物理合盖未测 |
 

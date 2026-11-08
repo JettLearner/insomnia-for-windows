@@ -10,24 +10,29 @@ maintenance release focused on documentation.
 
 **Not affiliated with the original author. No copyrighted assets from the original app are included.**
 
-> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07 (see
-> *Verification*), but the 1.2.0 installers have not been built yet. Nothing here has been pushed to
-> GitHub.
+> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07, and the
+> installers were built, checksummed and launch-checked on 2026-11-08 (see *Verification*). Nothing
+> here has been pushed to GitHub; creating the repository and the Release still needs an explicit
+> go-ahead.
 
 ## Download
 
 | File | Size | Purpose |
 |---|---:|---|
-| `InsomniaZ-Windows-1.2.0-x64.exe` | to be built | NSIS installer (recommended), per-user, choosable directory |
-| `InsomniaZ-Windows-1.2.0-portable.exe` | to be built | Portable, single file |
-| `InsomniaZ-Windows-1.2.0-screenshots.zip` | to be built | Panel, onboarding and settings screenshots |
-| `SHA256SUMS.txt` | — | Binary checksums, generated at packaging time |
+| `InsomniaZ-Windows-1.2.0-x64.exe` | 96.7 MB | NSIS installer (recommended), per-user, choosable directory |
+| `InsomniaZ-Windows-1.2.0-portable.exe` | 96.4 MB | Portable, single file |
+| `InsomniaZ-Windows-1.2.0-screenshots.zip` | 3.0 MB | Panel, onboarding and settings screenshots (21 images) |
+| `SHA256SUMS.txt` | — | Binary checksums, listed below |
 | `README.md` | — | Bilingual download and usage notes |
 
 ### SHA-256
 
-Generated when the binaries are built; paste the contents of `release/SHA256SUMS.txt` here before
-publishing. Verify with:
+```text
+d9720450d003535eac6047120a499ee0c2a57ff6a938b842b2914295d2ca7a59  InsomniaZ-Windows-1.2.0-x64.exe
+3910b56cc2e4ae267d1ca4718a04e0194cb4a0181216054e61bf11cede8e57ee  InsomniaZ-Windows-1.2.0-portable.exe
+```
+
+Verify with:
 
 ```powershell
 Get-FileHash .\InsomniaZ-Windows-1.2.0-x64.exe -Algorithm SHA256
@@ -84,10 +89,11 @@ data); delete that directory manually for a full cleanup.
 | Production build | **Pass** — main, renderer, `InsomniaZHelper.exe` and the automation helper |
 | Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
 | Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes: 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
+| Packaged binaries | **Built and launch-checked on 2026-11-08** — installer and portable read version 1.2.0 and are unsigned (`NotSigned`); the portable exe started with `packaged:true`, connected the 1.2.0 power helper and rendered the panel; `sha256sum -c` passes |
 | Protective sleep | Implemented and unit-tested; never executed on real hardware |
 | Lid policy write/restore | Verified on real hardware; physical lid close untested |
 
-The binaries still have to be built and checksummed; publishing itself needs an explicit go-ahead.
+The binaries are built and checksummed; publishing itself needs an explicit go-ahead.
 See the [publishing checklist](publishing.md).
 
 ## Known limitations

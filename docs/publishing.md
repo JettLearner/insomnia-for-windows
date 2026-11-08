@@ -36,8 +36,8 @@ published**.
 - [x] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures — **44/44 on 2026-11-07**.
   - Note: `--smoke` and `npm run capture` change the **real system power policy**. Do not run
     them while lid-close protection is active.
-- [ ] The smoke result is written back into the verification table of
-    `docs/release-notes-v1.2.0.md`.
+- [x] The smoke result is written back into the verification table of
+    `docs/release-notes-v1.2.0.md` (44/44 smoke and 12/12 load rows).
 
 ### 2.2 On-hardware verification
 
@@ -47,42 +47,58 @@ published**.
       connected throughout; the session file was removed on deactivate. Peak app-tree RSS 486 MB,
       peak app CPU 8.6%. Report: `docs/stress.json`.
 - [x] The smoke run and the load run are both green, so binaries may be built.
-- [ ] Building the installers and publishing them still needs an explicit go-ahead.
+- [x] Installers built on 2026-11-08 under the "prepare the open-source GitHub release" go-ahead:
+      `build-out8/win-unpacked` → `rcedit` 1.2.0 icon/version → `build-out8-installers`, then staged
+      in `release/` with `SHA256SUMS.txt` and the screenshots zip. The portable exe was launch-checked
+      on the real desktop (startup log `packaged:true`, helper 1.2.0 connected, panel rendered).
+- [ ] Creating the public repository, pushing and creating the Release still need an explicit
+      go-ahead.
 
 ### 2.3 Privacy and configuration
 
-- [ ] The repository contains no user name, host name, personal path, log, API key, prompt body
-      or original-app store asset.
-- [ ] `docs/assets/`, `docs/appstore.json`, `.scratch/`, `build-out*/` and `release-*/` are all in
-      `.gitignore`.
-- [ ] The published binaries come from the `win-unpacked` directory produced by this build — do
-      not reuse `release/win-unpacked`, which is a still-running older version.
-- [ ] Soft Stop data under `%APPDATA%\InsomniaZ\` (profiles, audit trail, stored keys) stays out
-      of the repository.
+- [x] The repository contains no user name, host name, personal path, log, API key, prompt body
+      or original-app store asset. Checked on 2026-11-08 against the working tree **and every commit**
+      (`git grep` over `git rev-list --all`): zero hits; the largest blob in history is a 0.28 MB
+      screenshot, so no binary or dump ever entered history.
+- [x] `docs/assets/`, `docs/appstore.json`, `.scratch/`, `build-out*/` and `release-*/` are all in
+      `.gitignore`; `git status --short --ignored` lists exactly the intended local directories.
+- [x] The published binaries come from the `win-unpacked` directory produced by this build
+      (`build-out8/win-unpacked`) — `release/win-unpacked` (the older 1.0.0 tree) was not reused.
+- [x] Soft Stop data under `%APPDATA%\InsomniaZ\` (profiles, audit trail, stored keys) stays out
+      of the repository; screenshots were taken in the isolated `docs/.capture-profile` profile.
 
 ### 2.4 Artifact consistency
 
-- [ ] `release/SHA256SUMS.txt` matches the actual files (`sha256sum -c SHA256SUMS.txt`, run
-      inside `release/`).
-- [ ] `release/README.md` and `docs/release-notes-v1.2.0.md` say the same thing: file list,
-      verification method, limitation notes.
-- [ ] The version resources of installer and portable exe read 1.2.0 (verify after `rcedit`).
-- [ ] The screenshot paths in the README exist; the screenshot zip contains the current panel,
-      onboarding and settings shots.
+- [x] `release/SHA256SUMS.txt` matches the actual files (`sha256sum -c SHA256SUMS.txt` → both OK,
+      2026-11-08).
+- [x] `release/README.md` and `docs/release-notes-v1.2.0.md` say the same thing: file list,
+      verification method, limitation notes; the notes now carry the real sizes and SHA-256 values.
+- [x] The version resources of installer and portable exe read 1.2.0 (read back with
+      `VersionInfo.FileVersion/ProductVersion` after `rcedit`); `Get-AuthenticodeSignature` reports
+      `NotSigned` for both, as documented.
+- [x] The screenshot paths in the README exist; captures were refreshed at v1.2.0 on 2026-11-08
+      (capture mode no longer force-enables the unpublished scheduler), and the zip contains the 21
+      current panel, onboarding and settings shots.
 
 ### 2.5 What the user must be told
 
-- [ ] Unsigned; SmartScreen shows an unknown publisher.
-- [ ] Physical lid close is untested and protective sleep was never executed on real hardware.
-- [ ] The portable edition does not support launch on startup.
+- [x] Unsigned; SmartScreen shows an unknown publisher. Stated in both READMEs, both release notes
+      and `release/README.md`.
+- [x] Physical lid close is untested and protective sleep was never executed on real hardware.
+      Stated in the same four documents.
+- [x] The portable edition does not support launch on startup. Stated in the same four documents.
 
 ### 2.6 Legal and metadata
 
-- [ ] `LICENSE` (MIT) and `SECURITY.md` / `SECURITY.zh-CN.md` exist and are correct.
-- [ ] Every user-facing document exists in English and Chinese and cross-links.
-- [ ] The disclaimer keeps "not affiliated with the original author, no copyrighted assets".
+- [x] `LICENSE` (MIT) and `SECURITY.md` / `SECURITY.zh-CN.md` exist and are correct.
+- [x] Every user-facing document exists in English and Chinese and cross-links (checked pairwise on
+      2026-11-08).
+- [x] The disclaimer keeps "not affiliated with the original author, no copyrighted assets".
 
 ## 3. Packaging (run only after the user confirms)
+
+Executed on 2026-11-08 with the output directories `build-out8` and `build-out8-installers`; the
+results are staged in `release/`. The commands below are the reusable form:
 
 ```bash
 npm run build
@@ -109,8 +125,8 @@ cd release && sha256sum InsomniaZ-Windows-1.2.0-x64.exe InsomniaZ-Windows-1.2.0-
 
 ## 4. Commit and push
 
-The local repository already has history (`git init` done, **no remote configured**). The working
-tree currently holds a large set of changes; review before committing:
+The local repository already has history (`git init` done, **no remote configured**) and the working
+tree is clean after the release-preparation commit. Review before committing anything new:
 
 ```bash
 git status --short
