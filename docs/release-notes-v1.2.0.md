@@ -10,11 +10,10 @@ maintenance release focused on documentation.
 
 **Not affiliated with the original author. No copyrighted assets from the original app are included.**
 
-> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07. The
-> installers were rebuilt and checksummed on 2026-11-09 under the new name *Insomnia for Windows*
-> (see *Verification*); the live launch re-check is pending because the pre-rename instance is still
-> running and holds the single-instance lock. Nothing here has been pushed to GitHub; the maintainer
-> creates the repository and the Release.
+> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07 and were
+> re-run green on 2026-11-09 after the rename to *Insomnia for Windows*, together with a packaged
+> launch check (see *Verification*). Nothing here has been pushed to GitHub; the maintainer creates
+> the repository and the Release.
 
 ## Download
 
@@ -88,9 +87,9 @@ data); delete that directory manually for a full cleanup.
 | TypeScript type check (main + renderer + tests) | **Pass** |
 | Vitest unit/integration | **307 tests in 24 files pass** — real helper processes, real HTTP sockets, the Soft Stop state machine, GUI recognition and the teaching recorder |
 | Production build | **Pass** — main, renderer, `InsomniaZHelper.exe` and the automation helper |
-| Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
-| Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes: 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
-| Packaged binaries | **Rebuilt on 2026-11-09 after the rename** — installer and portable read version 1.2.0 with `ProductName: Insomnia for Windows`, unsigned (`NotSigned`); `sha256sum -c` passes. The 2026-11-08 launch check (`packaged:true`, helper 1.2.0 connected, panel rendered) applies to the pre-rename build; the post-rename live launch re-check is pending until the running instance is closed |
+| Real Electron smoke | **44/44 pass** on 1.2.0, re-run on 2026-11-09 after the rename — real interaction against the live desktop |
+| Load / stress run | **12/12 pass**, re-run on 2026-11-09 — 3-minute window under two saturated CPU processes: 36 samples, largest gap 5.0 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 176.1 MB, peak app CPU 0% |
+| Packaged binaries | **Rebuilt and launch-checked on 2026-11-09 after the rename** — installer and portable read version 1.2.0 with `ProductName: Insomnia for Windows`, unsigned (`NotSigned`); the portable exe started with `packaged:true`, connected the 1.2.0 power helper and rendered the panel under the new brand; `sha256sum -c` passes |
 | Protective sleep | Implemented and unit-tested; never executed on real hardware |
 | Lid policy write/restore | Verified on real hardware; physical lid close untested |
 
@@ -102,8 +101,8 @@ See the [publishing checklist](publishing.md).
 - **Protective sleep and physical lid close remain untested on real hardware.**
 - **Unsigned binaries**, Windows 11 / OEM power schemes, notification visuals, installer startup and
   clean-system NSIS install/uninstall still need per-machine confirmation.
-- **Memory** idle ≈213 MB versus a 160 MB design target; idle CPU 0–0.16%. Under the sustained
-  saturated-CPU load run the process tree climbed to ≈486 MB and then stayed flat.
+- **Memory** idle ≈213 MB versus a 160 MB design target; idle CPU 0–0.16%. The 2026-11-07 saturated-CPU
+  load run peaked at ≈486 MB and then stayed flat; the 2026-11-09 re-run stayed ≤176 MB.
 - **GUI recognition depends on the target's accessibility and layout** — pure-canvas UIs cannot be
   read, and a target-app redesign can break ratio anchors and OCR labels.
 

@@ -33,7 +33,7 @@ published**.
 - [x] `npm run typecheck` passes (current baseline: 0 errors).
 - [x] `npm test` passes (current baseline: **307 tests in 24 files**).
 - [x] `npm run build` passes (main process, renderer, `InsomniaZHelper.exe`, `InsomniaZAuto.exe`).
-- [x] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures — **44/44 on 2026-11-07**.
+- [x] `npx electron . --smoke` passes completely and `docs/smoke.json` has no failures — **44/44 on 2026-11-09**.
   - Note: `--smoke` and `npm run capture` change the **real system power policy**. Do not run
     them while lid-close protection is active.
 - [x] The smoke result is written back into the verification table of
@@ -41,18 +41,17 @@ published**.
 
 ### 2.2 On-hardware verification
 
-- [x] Load run: **12/12 on 2026-11-07** (`STRESS_MINUTES=3 npx electron . --stress`). A keep-awake
+- [x] Load run: **12/12 on 2026-11-09** (`STRESS_MINUTES=3 npx electron . --stress`). A keep-awake
       session ran for the full 3-minute window under two saturated CPU processes; 36 samples, largest
-      gap 5.1 s; 36 settings writes with the file parseable throughout; the power helper stayed
-      connected throughout; the session file was removed on deactivate. Peak app-tree RSS 486 MB,
-      peak app CPU 8.6%. Report: `docs/stress.json`.
+      gap 5.0 s; 36 settings writes with the file parseable throughout; the power helper stayed
+      connected throughout; the session file was removed on deactivate. Peak app-tree RSS 176.1 MB,
+      peak app CPU 0%. Report: `docs/stress.json`.
 - [x] The smoke run and the load run are both green, so binaries may be built.
 - [x] Installers rebuilt on 2026-11-09 after the rename to *Insomnia for Windows*:
       `build-out10/win-unpacked` → `rcedit` 1.2.0 icon/version → `build-out10-installers`, then staged
-      in `release/` with a regenerated `SHA256SUMS.txt` and screenshots zip. The 2026-11-08 launch
-      check (startup log `packaged:true`, helper 1.2.0 connected, panel rendered) applies to the
-      pre-rename build; the post-rename live launch re-check is pending until the running instance
-      is closed, because it holds the single-instance lock on `%APPDATA%\InsomniaZ`.
+      in `release/` with a regenerated `SHA256SUMS.txt` and screenshots zip. The portable exe was
+      launch-checked on the real desktop on 2026-11-09 (startup log `packaged:true`, helper 1.2.0
+      connected, panel rendered under the new brand).
 - [ ] Creating the public repository, pushing and creating the Release still need an explicit
       go-ahead.
 

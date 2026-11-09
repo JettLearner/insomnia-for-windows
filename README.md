@@ -139,9 +139,9 @@ Current 1.2.0 baseline on Windows 10 22H2 (19045, x64):
 | Type check (main + renderer + tests) | Pass |
 | Vitest unit/integration | **307 tests in 24 files pass** — real helper processes, real HTTP sockets, the Soft Stop state machine, GUI recognition and the teaching recorder |
 | Production build (main + renderer + both helpers) | Pass |
-| Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
-| Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes, 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
-| Packaged binaries | **Rebuilt on 2026-11-09 after the rename** — version 1.2.0, `ProductName: Insomnia for Windows`, unsigned; `sha256sum -c` passes. The 2026-11-08 launch check applies to the pre-rename build; the post-rename live launch re-check is pending until the running instance is closed |
+| Real Electron smoke | **44/44 pass** on 1.2.0, re-run on 2026-11-09 after the rename — real interaction against the live desktop |
+| Load / stress run | **12/12 pass**, re-run on 2026-11-09 — 3-minute window under two saturated CPU processes, 36 samples, largest gap 5.0 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 176.1 MB, peak app CPU 0% |
+| Packaged binaries | **Rebuilt and launch-checked on 2026-11-09 after the rename** — version 1.2.0, `ProductName: Insomnia for Windows`, unsigned; the portable exe started with `packaged:true`, connected the 1.2.0 helper and rendered the panel; `sha256sum -c` passes |
 | Protective sleep | Implemented and unit-tested; **not executed on the real machine**, to avoid interrupting running work |
 | Lid policy write/restore | Elevation, write and exit-restore verified on real hardware; physical lid close untested |
 
@@ -170,8 +170,8 @@ byte-identical payload, teaching with `leakedPrompt=false`) is kept in the
 - **NSIS install/uninstall not tested on a clean system** — installers are generated from an
   accepted `win-unpacked` directory.
 - **Memory above the design target** — idle ≈213 MB (app 186 MB + helper 27 MB) versus a 160 MB
-  goal; idle CPU 0–0.16%. Under a sustained saturated-CPU load the process tree climbed to ≈486 MB
-  and stayed flat afterwards. This is the Electron 38 three-process baseline.
+  goal; idle CPU 0–0.16%. The 2026-11-07 saturated-CPU load run peaked at ≈486 MB and stayed flat;
+  the 2026-11-09 re-run stayed ≤176 MB. This is the Electron 38 three-process baseline.
 - **Multi-monitor / Modern Standby are best-effort** — the panel follows the cursor's monitor work
   area; measured on a single display at 150% scaling.
 - **UI replication boundary** — the official app provided only five store screenshots; Settings,

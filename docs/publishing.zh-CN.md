@@ -30,22 +30,21 @@
 - [x] `npm run typecheck` 通过（当前基线：0 错误）。
 - [x] `npm test` 通过（当前基线：**24 个文件 307 测试**）。
 - [x] `npm run build` 通过（主进程、渲染层、`InsomniaZHelper.exe`、`InsomniaZAuto.exe`）。
-- [x] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项——**2026-11-07 实测 44/44**。
+- [x] `npx electron . --smoke` 全部通过，`docs/smoke.json` 无失败项——**2026-11-09 实测 44/44**。
   - 注意：`--smoke` 与 `npm run capture` 会改动**真实系统电源策略**。合盖保护生效期间不要跑。
 - [x] 冒烟结果已写回 `docs/release-notes-v1.2.0.md` 的验证表（44/44 冒烟与 12/12 压测两行）。
 
 ### 2.2 实机验证
 
-- [x] 压测：**2026-11-07 实测 12/12 通过**（`STRESS_MINUTES=3 npx electron . --stress`）。防休眠会话在两个满载
-      CPU 进程下跑满 3 分钟窗口；36 次采样，最大间隔 5.1 秒；36 次设置写入期间文件始终可解析；
-      提权 helper 全程在线；停用后会话文件被清除。进程树内存峰值 486 MB，应用 CPU 峰值 8.6%。
+- [x] 压测：**2026-11-09 实测 12/12 通过**（`STRESS_MINUTES=3 npx electron . --stress`）。防休眠会话在两个满载
+      CPU 进程下跑满 3 分钟窗口；36 次采样，最大间隔 5.0 秒；36 次设置写入期间文件始终可解析；
+      提权 helper 全程在线；停用后会话文件被清除。进程树内存峰值 176.1 MB，应用 CPU 峰值 0%。
       报告见 `docs/stress.json`。
 - [x] 冒烟与压测均为绿，可以打包二进制。
 - [x] 安装包已于 2026-11-09 改名 *Insomnia for Windows* 后重新构建：`build-out10/win-unpacked` →
       `rcedit` 写入 1.2.0 图标/版本 → `build-out10-installers`，再 staging 到 `release/`，校验和与
-      截图 zip 均已重新生成。2026-11-08 的启动抽查（启动日志 `packaged:true`、helper 1.2.0 在线、
-      面板渲染正常）针对改名前的构建；改名后的实机启动复查待旧实例退出后补跑——旧实例占用着
-      `%APPDATA%\InsomniaZ` 的单实例锁。
+      截图 zip 均已重新生成。便携版已于 2026-11-09 在真实桌面启动抽查（启动日志 `packaged:true`、
+      helper 1.2.0 在线、面板以新品牌渲染正常）。
 - [ ] 创建公开仓库、push 与创建 Release 仍需你明确放行。
 
 ### 2.3 隐私与配置
