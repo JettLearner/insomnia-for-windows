@@ -1,6 +1,7 @@
 # GitHub 发布清单（维护者）
 
-> 维护者文档。以下命令尚未执行；创建公开仓库或 Release 前，请先获得明确授权。
+> 维护者文档。代码仓库已由维护者于 2026-11-09 推送并公开；v1.2.0 Release **尚未**创建，
+> 建 Release 前请先获得明确授权。
 > English: [publishing.md](publishing.md)
 
 当前目标版本：**1.2.0**（维护版本）。
@@ -45,7 +46,9 @@
       `rcedit` 写入 1.2.0 图标/版本 → `build-out10-installers`，再 staging 到 `release/`，校验和与
       截图 zip 均已重新生成。便携版已于 2026-11-09 在真实桌面启动抽查（启动日志 `packaged:true`、
       helper 1.2.0 在线、面板以新品牌渲染正常）。
-- [ ] 创建公开仓库、push 与创建 Release 仍需你明确放行。
+- [x] 公开仓库已建立且 `main` 已推送：`origin` 指向
+      <https://github.com/JettLearner/insomnia-for-windows>，由维护者于 2026-11-09 创建并推送。
+- [ ] 创建 v1.2.0 Release 及其附件仍需你明确放行。
 
 ### 2.3 隐私与配置
 
@@ -111,8 +114,8 @@ cd release && sha256sum InsomniaZ-Windows-1.2.0-x64.exe InsomniaZ-Windows-1.2.0-
 
 ## 4. 提交与推送
 
-仓库已有本地提交历史（`git init` 已完成，**没有配置 remote**），发布准备提交之后工作区是干净的。
-再有新改动时提交前先自查：
+仓库已有本地提交历史，`origin` 已配置，`main` 已由维护者于 2026-11-09 推送。验证提交之后工作区是
+干净的。再有新改动时提交前先自查：
 
 ```bash
 git status --short
@@ -121,16 +124,16 @@ git status --short          # 确认没有 release/、node_modules/、docs/asset
 git commit -m "Insomnia for Windows 1.2.0"
 ```
 
-仓库地址：<https://github.com/JettLearner/insomnia-for-windows>。描述：`Keep your Windows PC awake, even
-with the lid closed.` 建仓库与推送由维护者本人操作，下面的命令只作记录。
+仓库地址：<https://github.com/JettLearner/insomnia-for-windows>（公开）。描述：`Keep your Windows PC
+awake, even with the lid closed.`
 
-首次推送（会创建公开仓库，需明确授权）：
+首次推送已由维护者执行，用到的形式是：
 
 ```bash
 gh repo create JettLearner/insomnia-for-windows --public --source=. --remote=origin --push
 ```
 
-建议 topics：`windows`、`electron`、`tray`、`keep-awake`、`lid-close`、`power-management`、`automation`。
+topics：`windows`、`electron`、`tray`、`keep-awake`、`lid-close`、`power-management`、`automation`。
 
 ## 5. 创建 v1.2.0 Release
 

@@ -22,7 +22,8 @@
 
 ## 下载
 
-安装包与便携版发布在 [GitHub Releases](../../releases/latest)。
+安装包与便携版挂在 [GitHub Releases](../../releases/latest)。v1.2.0 Release 尚未创建；在此之前
+请用 `npm run dist` 自行构建。
 
 | 文件 | 说明 |
 |---|---|

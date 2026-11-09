@@ -1,7 +1,8 @@
 # GitHub publishing checklist (maintainer)
 
-> Maintainer document. None of the commands below have been run yet. Get explicit
-> authorization before creating a public repository or a Release.
+> Maintainer document. The source repository is already public (pushed by the maintainer on
+> 2026-11-09); the v1.2.0 Release has **not** been created yet. Get explicit authorization before
+> creating the Release.
 > 中文：[publishing.zh-CN.md](publishing.zh-CN.md)
 
 Target version: **1.2.0** (maintenance release).
@@ -52,8 +53,10 @@ published**.
       in `release/` with a regenerated `SHA256SUMS.txt` and screenshots zip. The portable exe was
       launch-checked on the real desktop on 2026-11-09 (startup log `packaged:true`, helper 1.2.0
       connected, panel rendered under the new brand).
-- [ ] Creating the public repository, pushing and creating the Release still need an explicit
-      go-ahead.
+- [x] The public repository exists and `main` is pushed: `origin` points at
+      <https://github.com/JettLearner/insomnia-for-windows>, created and pushed by the maintainer
+      on 2026-11-09.
+- [ ] Creating the v1.2.0 Release with its assets still needs an explicit go-ahead.
 
 ### 2.3 Privacy and configuration
 
@@ -126,8 +129,9 @@ cd release && sha256sum InsomniaZ-Windows-1.2.0-x64.exe InsomniaZ-Windows-1.2.0-
 
 ## 4. Commit and push
 
-The local repository already has history (`git init` done, **no remote configured**) and the working
-tree is clean after the release-preparation commit. Review before committing anything new:
+The local repository has history, `origin` is configured and `main` was pushed by the maintainer on
+2026-11-09. The working tree is clean after the verification commit. Review before committing
+anything new:
 
 ```bash
 git status --short
@@ -136,18 +140,15 @@ git status --short          # confirm no release/, node_modules/, docs/assets/, 
 git commit -m "Insomnia for Windows 1.2.0"
 ```
 
-Repository: <https://github.com/JettLearner/insomnia-for-windows>. Description: `Keep your Windows PC
-awake, even with the lid closed.` The maintainer creates the repository and pushes; the commands
-below are recorded for reference only.
+Repository: <https://github.com/JettLearner/insomnia-for-windows> (public). Description:
+`Keep your Windows PC awake, even with the lid closed.` Topics: `windows`, `electron`, `tray`,
+`keep-awake`, `lid-close`, `power-management`, `automation`.
 
-First push (creates a public repository — needs explicit authorization):
+The first push was executed by the maintainer; the form used was:
 
 ```bash
 gh repo create JettLearner/insomnia-for-windows --public --source=. --remote=origin --push
 ```
-
-Suggested topics: `windows`, `electron`, `tray`, `keep-awake`, `lid-close`, `power-management`,
-`automation`.
 
 ## 5. Create the v1.2.0 Release
 

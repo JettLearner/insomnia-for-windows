@@ -9,9 +9,10 @@ macOS 菜单栏应用 **InsomniaZ – Never Sleep** 的独立 Windows 移植版�
 
 **与原作者无关联，未包含原应用受版权保护的素材。**
 
-> **发布状态：已准备，未发布。** 两道验证闸门已于 2026-11-07 全部通过，并在 2026-11-09 改名
-> *Insomnia for Windows* 后复跑全绿，同时补做了打包版启动抽查（见「验证」）。本仓库没有任何内容
-> 被推送到 GitHub；建仓库与建 Release 由维护者本人操作。
+> **发布状态：代码已公开，安装包待挂 Release。** 代码仓已于 2026-11-09 公开在
+> <https://github.com/JettLearner/insomnia-for-windows>。两道验证闸门已于 2026-11-07 全部通过，并在
+> 2026-11-09 改名 *Insomnia for Windows* 后复跑全绿，同时补做了打包版启动抽查（见「验证」）。
+> v1.2.0 Release 与二进制附件尚未创建。
 
 ## 下载
 

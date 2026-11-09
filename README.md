@@ -25,7 +25,8 @@ long-pressing the status ring opens Settings.
 
 ## Download
 
-Installers and the portable build are published on [GitHub Releases](../../releases/latest).
+Installers and the portable build are attached to [GitHub Releases](../../releases/latest). The
+v1.2.0 Release is not created yet; until then build them from source with `npm run dist`.
 
 | File | Description |
 |---|---|

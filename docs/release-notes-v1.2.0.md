@@ -10,10 +10,11 @@ maintenance release focused on documentation.
 
 **Not affiliated with the original author. No copyrighted assets from the original app are included.**
 
-> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07 and were
-> re-run green on 2026-11-09 after the rename to *Insomnia for Windows*, together with a packaged
-> launch check (see *Verification*). Nothing here has been pushed to GitHub; the maintainer creates
-> the repository and the Release.
+> **Release status: source published, binaries pending.** The code repository went public on
+> 2026-11-09 at <https://github.com/JettLearner/insomnia-for-windows>. Both verification gates
+> passed on 2026-11-07 and were re-run green on 2026-11-09 after the rename to *Insomnia for
+> Windows*, together with a packaged launch check (see *Verification*). The v1.2.0 Release and its
+> assets have not been created yet.
 
 ## Download
 
