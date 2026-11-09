@@ -1,4 +1,4 @@
-# InsomniaZ for Windows
+# Insomnia for Windows
 
 > 合盖也不睡，任务不停。  
 > 对 macOS 菜单栏应用 **InsomniaZ – Never Sleep** 的独立 Windows 移植版，与原作者无关联。
@@ -6,7 +6,7 @@
 [English](README.md) · **中文**
 
 <p align="center">
-  <img src="docs/captures/panel-active-on-zh.png" alt="InsomniaZ 主面板" width="300">
+  <img src="docs/captures/panel-active-on-zh.png" alt="Insomnia for Windows 主面板" width="300">
   <img src="docs/captures/onboarding-1-zh.png" alt="首次启动引导" width="300">
 </p>
 
@@ -127,7 +127,7 @@ Windows 没有面向普通应用的“合盖不睡眠”开关，只能修改当
 | 生产构建（主进程 + 渲染层 + 两个 helper） | 通过 |
 | 真实 Electron 冒烟 | **1.2.0 实测 44/44 通过**（2026-11-07），在真实桌面上做真实交互 |
 | 压测 | **12/12 通过**——两个满载 CPU 进程下跑满 3 分钟窗口，36 次采样，最大间隔 5.1 秒，36 次设置写入期间文件始终可解析，helper 全程在线，停用后会话文件被清除。应用进程树内存峰值 486 MB，应用 CPU 峰值 8.6% |
-| 打包产物 | **2026-11-08 构建并启动抽查**——安装版与便携版版本资源均为 1.2.0、未签名；便携版以 `packaged:true` 启动、连上 1.2.0 helper 并渲染出面板；`sha256sum -c` 通过 |
+| 打包产物 | **2026-11-09 改名后重新构建**——版本 1.2.0、`ProductName: Insomnia for Windows`、未签名；`sha256sum -c` 通过。2026-11-08 的启动抽查针对改名前构建；改名后的实机启动复查待旧实例退出后补跑 |
 | 保护性休眠 | 已实现并通过单测；为避免中断正在跑的任务，**未在真机执行** |
 | 合盖策略真实写入/恢复 | 提权、写入、退出还原已在真机走通；物理合盖未测 |
 
@@ -189,12 +189,12 @@ export ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-b
 npm run build
 npx electron-builder --win --dir --x64 \
   --config.directories.output=build-out --config.win.signAndEditExecutable=false
-.tools/winCodeSign/rcedit-x64.exe build-out/win-unpacked/InsomniaZ.exe \
+.tools/winCodeSign/rcedit-x64.exe "build-out/win-unpacked/Insomnia for Windows.exe" \
   --set-icon release/.icon-ico/icon.ico \
-  --set-version-string FileDescription InsomniaZ \
-  --set-version-string ProductName InsomniaZ \
-  --set-version-string CompanyName "Independent Windows port" \
-  --set-version-string LegalCopyright "Copyright (c) 2026 Independent Windows port" \
+  --set-version-string FileDescription "Insomnia for Windows" \
+  --set-version-string ProductName "Insomnia for Windows" \
+  --set-version-string CompanyName "JettLearner" \
+  --set-version-string LegalCopyright "Copyright (c) 2026 JettLearner" \
   --set-file-version 1.2.0 --set-product-version 1.2.0.0
 npx electron-builder --win nsis portable --x64 --prepackaged build-out/win-unpacked \
   --config.directories.output=build-out-installers --config.win.signAndEditExecutable=false

@@ -1,4 +1,4 @@
-# InsomniaZ for Windows
+# Insomnia for Windows
 
 > Keep your PC awake — even with the lid closed.
 > An independent Windows port of the macOS menu-bar app **InsomniaZ – Never Sleep**. Not affiliated with the original author.
@@ -6,7 +6,7 @@
 **English** · [中文](README.zh-CN.md)
 
 <p align="center">
-  <img src="docs/captures/panel-active-on-en.png" alt="InsomniaZ control panel" width="300">
+  <img src="docs/captures/panel-active-on-en.png" alt="Insomnia for Windows control panel" width="300">
   <img src="docs/captures/onboarding-1-en.png" alt="First-run onboarding" width="300">
 </p>
 
@@ -141,7 +141,7 @@ Current 1.2.0 baseline on Windows 10 22H2 (19045, x64):
 | Production build (main + renderer + both helpers) | Pass |
 | Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
 | Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes, 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
-| Packaged binaries | **Built and launch-checked on 2026-11-08** — installer and portable read version 1.2.0, unsigned; the portable exe started with `packaged:true`, connected the 1.2.0 helper and rendered the panel; `sha256sum -c` passes |
+| Packaged binaries | **Rebuilt on 2026-11-09 after the rename** — version 1.2.0, `ProductName: Insomnia for Windows`, unsigned; `sha256sum -c` passes. The 2026-11-08 launch check applies to the pre-rename build; the post-rename live launch re-check is pending until the running instance is closed |
 | Protective sleep | Implemented and unit-tested; **not executed on the real machine**, to avoid interrupting running work |
 | Lid policy write/restore | Elevation, write and exit-restore verified on real hardware; physical lid close untested |
 
@@ -211,12 +211,12 @@ export ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-b
 npm run build
 npx electron-builder --win --dir --x64 \
   --config.directories.output=build-out --config.win.signAndEditExecutable=false
-.tools/winCodeSign/rcedit-x64.exe build-out/win-unpacked/InsomniaZ.exe \
+.tools/winCodeSign/rcedit-x64.exe "build-out/win-unpacked/Insomnia for Windows.exe" \
   --set-icon release/.icon-ico/icon.ico \
-  --set-version-string FileDescription InsomniaZ \
-  --set-version-string ProductName InsomniaZ \
-  --set-version-string CompanyName "Independent Windows port" \
-  --set-version-string LegalCopyright "Copyright (c) 2026 Independent Windows port" \
+  --set-version-string FileDescription "Insomnia for Windows" \
+  --set-version-string ProductName "Insomnia for Windows" \
+  --set-version-string CompanyName "JettLearner" \
+  --set-version-string LegalCopyright "Copyright (c) 2026 JettLearner" \
   --set-file-version 1.2.0 --set-product-version 1.2.0.0
 npx electron-builder --win nsis portable --x64 --prepackaged build-out/win-unpacked \
   --config.directories.output=build-out-installers --config.win.signAndEditExecutable=false

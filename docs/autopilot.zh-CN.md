@@ -1,6 +1,6 @@
 # Autopilot — 定时提示词投递
 
-> InsomniaZ for Windows 1.2.0 · English: [autopilot.md](autopilot.md)
+> Insomnia for Windows 1.2.0 · English: [autopilot.md](autopilot.md)
 > 相关源码：`shared/autopilot.ts`、`shared/autopilot-ui.ts`、`electron/core/autopilot-*.ts`、`src/routes/Autopilot.tsx`
 
 > **内部功能，不随发布版提供。** 代码保留在仓库中，但托盘入口与面板按钮默认隐藏，调度器也不会启动，
@@ -31,7 +31,7 @@ Autopilot 是一个后台常驻的调度器：到点后把一段完整提示词�
 5. 确认无误后再交给它无人值守运行。
 
 自动化助手 `InsomniaZAuto.exe` 从应用资源里懒启动，**不需要管理员权限**。
-以管理员身份运行的目标应用，只有在同样提权的 InsomniaZ 下才能被自动化。
+以管理员身份运行的目标应用，只有在同样提权的 Insomnia for Windows 下才能被自动化。
 
 ## 3. 页签
 

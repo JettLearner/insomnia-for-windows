@@ -1,6 +1,6 @@
 # 软叫停（Soft Stop）
 
-> 适用于 InsomniaZ for Windows 1.1.0 及以后版本（当前 1.2.0）  
+> 适用于 Insomnia for Windows 1.1.0 及以后版本（当前 1.2.0）  
 > English: [soft-stop.md](soft-stop.md)  
 > 相关源码：`shared/soft-stop.ts`、`shared/gui.ts`、`electron/core/{ai-detect,soft-stop-engine,soft-stop-sender,gui-agent}.ts`、`resources/helper/InsomniaZHelper.cs`  
 > 设置界面：`src/routes/settings/SoftStopSection.tsx`

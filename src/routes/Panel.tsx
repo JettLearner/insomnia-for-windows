@@ -111,7 +111,7 @@ export function Panel() {
       <div className="surface panel" role="dialog" aria-label={t('panelAria')}>
         <header className="panel-header">
           <div className="brand-block">
-            <span className="brand-name">InsomniaZ</span>
+            <span className="brand-name">Insomnia for Windows</span>
             <span className={`brand-kicker${active ? ' is-active' : ''}`}>
               {active ? t('statusActive') : t('statusReady')}
             </span>

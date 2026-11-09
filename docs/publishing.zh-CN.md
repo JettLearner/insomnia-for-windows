@@ -41,9 +41,11 @@
       提权 helper 全程在线；停用后会话文件被清除。进程树内存峰值 486 MB，应用 CPU 峰值 8.6%。
       报告见 `docs/stress.json`。
 - [x] 冒烟与压测均为绿，可以打包二进制。
-- [x] 安装包已按 2026-11-08「准备开源发布 GitHub」的放行构建：`build-out8/win-unpacked` → `rcedit`
-      写入 1.2.0 图标/版本 → `build-out8-installers`，再 staging 到 `release/`，附 `SHA256SUMS.txt`
-      与截图 zip。便携版已在真实桌面启动抽查（启动日志 `packaged:true`、helper 1.2.0 在线、面板渲染正常）。
+- [x] 安装包已于 2026-11-09 改名 *Insomnia for Windows* 后重新构建：`build-out10/win-unpacked` →
+      `rcedit` 写入 1.2.0 图标/版本 → `build-out10-installers`，再 staging 到 `release/`，校验和与
+      截图 zip 均已重新生成。2026-11-08 的启动抽查（启动日志 `packaged:true`、helper 1.2.0 在线、
+      面板渲染正常）针对改名前的构建；改名后的实机启动复查待旧实例退出后补跑——旧实例占用着
+      `%APPDATA%\InsomniaZ` 的单实例锁。
 - [ ] 创建公开仓库、push 与创建 Release 仍需你明确放行。
 
 ### 2.3 隐私与配置
@@ -60,12 +62,12 @@
 
 ### 2.4 产物一致性
 
-- [x] `release/SHA256SUMS.txt` 与实际文件一致（2026-11-08 在 `release/` 内执行 `sha256sum -c`，两项均 OK）。
+- [x] `release/SHA256SUMS.txt` 与实际文件一致（2026-11-09 在 `release/` 内执行 `sha256sum -c`，两项均 OK）。
 - [x] `release/README.md` 与 `docs/release-notes-v1.2.0.md` 说的是同一件事：文件清单、校验方法、限制说明；
       发布说明已写入真实大小与 SHA-256。
 - [x] 安装包与便携版的版本资源为 1.2.0（`rcedit` 后用 `VersionInfo.FileVersion/ProductVersion` 回读）；
       `Get-AuthenticodeSignature` 两者均为 `NotSigned`，与文档口径一致。
-- [x] README 中的截图路径存在；截图已于 2026-11-08 刷新到 v1.2.0（capture 模式不再强制启用未发布的
+- [x] README 中的截图路径存在；截图已于 2026-11-09 刷新到 v1.2.0（capture 模式不再强制启用未发布的
       调度器），zip 收录 21 张最新面板、引导与设置截图。
 
 ### 2.5 对用户的说明
@@ -82,19 +84,19 @@
 
 ## 3. 打包（需用户确认后再执行）
 
-已于 2026-11-08 执行，输出目录为 `build-out8` 与 `build-out8-installers`，产物已 staging 到 `release/`。
+已于 2026-11-09 执行，输出目录为 `build-out10` 与 `build-out10-installers`，产物已 staging 到 `release/`。
 以下为可复用命令：
 
 ```bash
 npm run build
 npx electron-builder --win --dir --x64 \
   --config.directories.output=build-out --config.win.signAndEditExecutable=false
-.tools/winCodeSign/rcedit-x64.exe build-out/win-unpacked/InsomniaZ.exe \
+.tools/winCodeSign/rcedit-x64.exe "build-out/win-unpacked/Insomnia for Windows.exe" \
   --set-icon release/.icon-ico/icon.ico \
-  --set-version-string FileDescription InsomniaZ \
-  --set-version-string ProductName InsomniaZ \
-  --set-version-string CompanyName "Independent Windows port" \
-  --set-version-string LegalCopyright "Copyright (c) 2026 Independent Windows port" \
+  --set-version-string FileDescription "Insomnia for Windows" \
+  --set-version-string ProductName "Insomnia for Windows" \
+  --set-version-string CompanyName "JettLearner" \
+  --set-version-string LegalCopyright "Copyright (c) 2026 JettLearner" \
   --set-file-version 1.2.0 --set-product-version 1.2.0.0
 npx electron-builder --win nsis portable --x64 --prepackaged build-out/win-unpacked \
   --config.directories.output=build-out-installers --config.win.signAndEditExecutable=false
@@ -117,15 +119,16 @@ cd release && sha256sum InsomniaZ-Windows-1.2.0-x64.exe InsomniaZ-Windows-1.2.0-
 git status --short
 git add -A
 git status --short          # 确认没有 release/、node_modules/、docs/assets/、build-out*/、design-archive/probes/
-git commit -m "InsomniaZ for Windows 1.2.0"
+git commit -m "Insomnia for Windows 1.2.0"
 ```
 
-建议仓库名：`insomniaz-windows`。描述：`Keep your Windows PC awake, even with the lid closed.`
+仓库地址：<https://github.com/JettLearner/insomnia-for-windows>。描述：`Keep your Windows PC awake, even
+with the lid closed.` 建仓库与推送由维护者本人操作，下面的命令只作记录。
 
 首次推送（会创建公开仓库，需明确授权）：
 
 ```bash
-gh repo create <owner>/insomniaz-windows --public --source=. --remote=origin --push
+gh repo create JettLearner/insomnia-for-windows --public --source=. --remote=origin --push
 ```
 
 建议 topics：`windows`、`electron`、`tray`、`keep-awake`、`lid-close`、`power-management`、`automation`。
@@ -139,7 +142,7 @@ gh release create v1.2.0 \
   release/InsomniaZ-Windows-1.2.0-screenshots.zip \
   release/SHA256SUMS.txt \
   release/README.md \
-  --title "InsomniaZ for Windows 1.2.0" \
+  --title "Insomnia for Windows 1.2.0" \
   --notes-file docs/release-notes-v1.2.0.md
 ```
 

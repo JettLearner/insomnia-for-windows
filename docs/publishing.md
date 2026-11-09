@@ -47,10 +47,12 @@ published**.
       connected throughout; the session file was removed on deactivate. Peak app-tree RSS 486 MB,
       peak app CPU 8.6%. Report: `docs/stress.json`.
 - [x] The smoke run and the load run are both green, so binaries may be built.
-- [x] Installers built on 2026-11-08 under the "prepare the open-source GitHub release" go-ahead:
-      `build-out8/win-unpacked` → `rcedit` 1.2.0 icon/version → `build-out8-installers`, then staged
-      in `release/` with `SHA256SUMS.txt` and the screenshots zip. The portable exe was launch-checked
-      on the real desktop (startup log `packaged:true`, helper 1.2.0 connected, panel rendered).
+- [x] Installers rebuilt on 2026-11-09 after the rename to *Insomnia for Windows*:
+      `build-out10/win-unpacked` → `rcedit` 1.2.0 icon/version → `build-out10-installers`, then staged
+      in `release/` with a regenerated `SHA256SUMS.txt` and screenshots zip. The 2026-11-08 launch
+      check (startup log `packaged:true`, helper 1.2.0 connected, panel rendered) applies to the
+      pre-rename build; the post-rename live launch re-check is pending until the running instance
+      is closed, because it holds the single-instance lock on `%APPDATA%\InsomniaZ`.
 - [ ] Creating the public repository, pushing and creating the Release still need an explicit
       go-ahead.
 
@@ -63,20 +65,20 @@ published**.
 - [x] `docs/assets/`, `docs/appstore.json`, `.scratch/`, `build-out*/` and `release-*/` are all in
       `.gitignore`; `git status --short --ignored` lists exactly the intended local directories.
 - [x] The published binaries come from the `win-unpacked` directory produced by this build
-      (`build-out8/win-unpacked`) — `release/win-unpacked` (the older 1.0.0 tree) was not reused.
+      (`build-out10/win-unpacked`) — `release/win-unpacked` (the older 1.0.0 tree) was not reused.
 - [x] Soft Stop data under `%APPDATA%\InsomniaZ\` (profiles, audit trail, stored keys) stays out
       of the repository; screenshots were taken in the isolated `docs/.capture-profile` profile.
 
 ### 2.4 Artifact consistency
 
 - [x] `release/SHA256SUMS.txt` matches the actual files (`sha256sum -c SHA256SUMS.txt` → both OK,
-      2026-11-08).
+      2026-11-09).
 - [x] `release/README.md` and `docs/release-notes-v1.2.0.md` say the same thing: file list,
       verification method, limitation notes; the notes now carry the real sizes and SHA-256 values.
 - [x] The version resources of installer and portable exe read 1.2.0 (read back with
       `VersionInfo.FileVersion/ProductVersion` after `rcedit`); `Get-AuthenticodeSignature` reports
       `NotSigned` for both, as documented.
-- [x] The screenshot paths in the README exist; captures were refreshed at v1.2.0 on 2026-11-08
+- [x] The screenshot paths in the README exist; captures were refreshed at v1.2.0 on 2026-11-09
       (capture mode no longer force-enables the unpublished scheduler), and the zip contains the 21
       current panel, onboarding and settings shots.
 
@@ -97,19 +99,19 @@ published**.
 
 ## 3. Packaging (run only after the user confirms)
 
-Executed on 2026-11-08 with the output directories `build-out8` and `build-out8-installers`; the
+Executed on 2026-11-09 with the output directories `build-out10` and `build-out10-installers`; the
 results are staged in `release/`. The commands below are the reusable form:
 
 ```bash
 npm run build
 npx electron-builder --win --dir --x64 \
   --config.directories.output=build-out --config.win.signAndEditExecutable=false
-.tools/winCodeSign/rcedit-x64.exe build-out/win-unpacked/InsomniaZ.exe \
+.tools/winCodeSign/rcedit-x64.exe "build-out/win-unpacked/Insomnia for Windows.exe" \
   --set-icon release/.icon-ico/icon.ico \
-  --set-version-string FileDescription InsomniaZ \
-  --set-version-string ProductName InsomniaZ \
-  --set-version-string CompanyName "Independent Windows port" \
-  --set-version-string LegalCopyright "Copyright (c) 2026 Independent Windows port" \
+  --set-version-string FileDescription "Insomnia for Windows" \
+  --set-version-string ProductName "Insomnia for Windows" \
+  --set-version-string CompanyName "JettLearner" \
+  --set-version-string LegalCopyright "Copyright (c) 2026 JettLearner" \
   --set-file-version 1.2.0 --set-product-version 1.2.0.0
 npx electron-builder --win nsis portable --x64 --prepackaged build-out/win-unpacked \
   --config.directories.output=build-out-installers --config.win.signAndEditExecutable=false
@@ -132,16 +134,17 @@ tree is clean after the release-preparation commit. Review before committing any
 git status --short
 git add -A
 git status --short          # confirm no release/, node_modules/, docs/assets/, build-out*/, design-archive/probes/
-git commit -m "InsomniaZ for Windows 1.2.0"
+git commit -m "Insomnia for Windows 1.2.0"
 ```
 
-Suggested repository name: `insomniaz-windows`. Description: `Keep your Windows PC awake, even
-with the lid closed.`
+Repository: <https://github.com/JettLearner/insomnia-for-windows>. Description: `Keep your Windows PC
+awake, even with the lid closed.` The maintainer creates the repository and pushes; the commands
+below are recorded for reference only.
 
 First push (creates a public repository — needs explicit authorization):
 
 ```bash
-gh repo create <owner>/insomniaz-windows --public --source=. --remote=origin --push
+gh repo create JettLearner/insomnia-for-windows --public --source=. --remote=origin --push
 ```
 
 Suggested topics: `windows`, `electron`, `tray`, `keep-awake`, `lid-close`, `power-management`,
@@ -156,7 +159,7 @@ gh release create v1.2.0 \
   release/InsomniaZ-Windows-1.2.0-screenshots.zip \
   release/SHA256SUMS.txt \
   release/README.md \
-  --title "InsomniaZ for Windows 1.2.0" \
+  --title "Insomnia for Windows 1.2.0" \
   --notes-file docs/release-notes-v1.2.0.md
 ```
 

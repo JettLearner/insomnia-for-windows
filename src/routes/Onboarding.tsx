@@ -111,7 +111,7 @@ export function Onboarding() {
         <header className="ob-top">
           <AppMark size={24} />
           <div className="ob-brand">
-            <span>InsomniaZ</span>
+            <span>Insomnia for Windows</span>
             <span className="muted">{t('windowsPort')}</span>
           </div>
           <span className="ob-step">{t('obStep', { current: step, total: TOTAL_STEPS })}</span>

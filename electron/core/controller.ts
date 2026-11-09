@@ -6,6 +6,7 @@ import { cpus, release, totalmem, type } from 'node:os';
 import {
   APP_VERSION,
   INACTIVE_SESSION,
+  REPO_URL,
   type Bootstrap,
   type Capabilities,
   type Command,
@@ -53,9 +54,6 @@ interface ControllerOptions {
 }
 
 type DeactivateReason = 'manual' | 'expired' | 'low-battery' | 'unplugged' | 'shutdown' | 'soft-stop';
-
-const APP_STORE_URL = 'https://apps.apple.com/app/insomniaz-never-sleep/id1447041581';
-const DEVELOPER_URL = 'https://pawandixit.com';
 
 export class Controller extends EventEmitter {
   readonly helper: HelperClient;
@@ -1072,7 +1070,7 @@ export class Controller extends EventEmitter {
       const payload = {
         generatedAt: new Date().toISOString(),
         app: {
-          name: 'InsomniaZ',
+          name: 'Insomnia for Windows',
           version: APP_VERSION,
           electron: process.versions.electron,
           chrome: process.versions.chrome,
@@ -1109,9 +1107,12 @@ export class Controller extends EventEmitter {
     } catch {
       return this.fail('errNetwork', 'BAD_URL');
     }
-    const isAppStore = parsed.protocol === 'https:' && parsed.hostname === 'apps.apple.com';
-    const isDeveloper = parsed.protocol === 'https:' && parsed.hostname === 'pawandixit.com';
-    if (!isAppStore && !isDeveloper) return this.fail('errNetwork', 'BLOCKED_URL');
+    const repo = new URL(REPO_URL);
+    const isRepo =
+      parsed.protocol === repo.protocol &&
+      parsed.hostname === repo.hostname &&
+      parsed.pathname.startsWith(repo.pathname);
+    if (!isRepo) return this.fail('errNetwork', 'BLOCKED_URL');
     void shell.openExternal(parsed.toString());
     return this.ok();
   }
@@ -1281,10 +1282,6 @@ export class Controller extends EventEmitter {
       default:
         return 'errGeneric';
     }
-  }
-
-  getAppLinks(): { appStore: string; developer: string } {
-    return { appStore: APP_STORE_URL, developer: DEVELOPER_URL };
   }
 
   getRecoveryInfo(): ReturnType<typeof readLidRecovery> {

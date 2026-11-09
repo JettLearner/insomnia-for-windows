@@ -72,7 +72,7 @@ export class WindowManager {
       fullscreenable: false,
       skipTaskbar: true,
       autoHideMenuBar: true,
-      title: 'InsomniaZ',
+      title: 'Insomnia for Windows',
       icon: this.options.appIcon,
       webPreferences: {
         preload: this.options.preloadPath,
@@ -225,7 +225,7 @@ export class WindowManager {
       minimizable: true,
       fullscreenable: true,
       skipTaskbar: false,
-      title: 'InsomniaZ Autopilot',
+      title: 'Insomnia for Windows Autopilot',
     });
     win.setMenuBarVisibility(false);
     this.autopilotWindow = win;

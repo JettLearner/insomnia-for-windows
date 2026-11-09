@@ -1,11 +1,15 @@
 {
-  "name": "insomniaz-windows",
-  "productName": "InsomniaZ",
+  "name": "insomnia-for-windows",
+  "productName": "Insomnia for Windows",
   "version": "1.2.0",
   "private": true,
-  "description": "InsomniaZ for Windows — keep your PC awake, even with the lid closed.",
-  "author": "Independent Windows port",
+  "description": "Insomnia for Windows — keep your PC awake, even with the lid closed.",
+  "author": "JettLearner",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JettLearner/insomnia-for-windows.git"
+  },
   "type": "module",
   "main": "dist/main/main.cjs",
   "scripts": {
@@ -41,7 +45,7 @@
   },
   "build": {
     "appId": "com.insomniaz.windows",
-    "productName": "InsomniaZ",
+    "productName": "Insomnia for Windows",
     "asar": true,
     "npmRebuild": false,
     "electronDist": "node_modules/electron/dist",
@@ -99,7 +103,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "InsomniaZ",
+      "shortcutName": "Insomnia for Windows",
       "deleteAppDataOnUninstall": false
     },
     "portable": {

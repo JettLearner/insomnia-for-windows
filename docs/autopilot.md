@@ -1,6 +1,6 @@
 # Autopilot — scheduled prompt delivery
 
-> InsomniaZ for Windows 1.2.0 · 中文版：[autopilot.zh-CN.md](autopilot.zh-CN.md)
+> Insomnia for Windows 1.2.0 · 中文版：[autopilot.zh-CN.md](autopilot.zh-CN.md)
 > Source: `shared/autopilot.ts`, `shared/autopilot-ui.ts`, `electron/core/autopilot-*.ts`, `src/routes/Autopilot.tsx`
 
 > **Internal feature — not part of the published build.** The code stays in the repository, but the
@@ -39,7 +39,7 @@ Closing the Settings window brings the main control panel back.
 
 The automation helper `InsomniaZAuto.exe` starts lazily from the app's resources and does **not**
 require elevation. Apps running as administrator can only be automated from an equally elevated
-InsomniaZ.
+Insomnia for Windows.
 
 ## 3. Tabs
 

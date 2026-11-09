@@ -1,4 +1,4 @@
-# InsomniaZ for Windows 1.2.0
+# Insomnia for Windows 1.2.0
 
 > 2026-11-07 · Windows 10 22H2 / Windows 11 · x64
 > 中文版：[release-notes-v1.2.0.zh-CN.md](release-notes-v1.2.0.zh-CN.md)
@@ -10,10 +10,11 @@ maintenance release focused on documentation.
 
 **Not affiliated with the original author. No copyrighted assets from the original app are included.**
 
-> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07, and the
-> installers were built, checksummed and launch-checked on 2026-11-08 (see *Verification*). Nothing
-> here has been pushed to GitHub; creating the repository and the Release still needs an explicit
-> go-ahead.
+> **Release status: prepared, not published.** Both verification gates passed on 2026-11-07. The
+> installers were rebuilt and checksummed on 2026-11-09 under the new name *Insomnia for Windows*
+> (see *Verification*); the live launch re-check is pending because the pre-rename instance is still
+> running and holds the single-instance lock. Nothing here has been pushed to GitHub; the maintainer
+> creates the repository and the Release.
 
 ## Download
 
@@ -21,15 +22,15 @@ maintenance release focused on documentation.
 |---|---:|---|
 | `InsomniaZ-Windows-1.2.0-x64.exe` | 96.7 MB | NSIS installer (recommended), per-user, choosable directory |
 | `InsomniaZ-Windows-1.2.0-portable.exe` | 96.4 MB | Portable, single file |
-| `InsomniaZ-Windows-1.2.0-screenshots.zip` | 3.0 MB | Panel, onboarding and settings screenshots (21 images) |
+| `InsomniaZ-Windows-1.2.0-screenshots.zip` | 3.1 MB | Panel, onboarding and settings screenshots (21 images) |
 | `SHA256SUMS.txt` | — | Binary checksums, listed below |
 | `README.md` | — | Bilingual download and usage notes |
 
 ### SHA-256
 
 ```text
-d9720450d003535eac6047120a499ee0c2a57ff6a938b842b2914295d2ca7a59  InsomniaZ-Windows-1.2.0-x64.exe
-3910b56cc2e4ae267d1ca4718a04e0194cb4a0181216054e61bf11cede8e57ee  InsomniaZ-Windows-1.2.0-portable.exe
+e5ccbf5520d5c43a350aa5f4929948113fc744a77066a92751140a63cf635123 *InsomniaZ-Windows-1.2.0-x64.exe
+3437628028269ceab19d5c68e9b65f708b22814f21aa9bd4b9ecbb6876254279 *InsomniaZ-Windows-1.2.0-portable.exe
 ```
 
 Verify with:
@@ -89,7 +90,7 @@ data); delete that directory manually for a full cleanup.
 | Production build | **Pass** — main, renderer, `InsomniaZHelper.exe` and the automation helper |
 | Real Electron smoke | **44/44 pass** on 1.2.0 (2026-11-07) — real interaction against the live desktop |
 | Load / stress run | **12/12 pass** — 3-minute window under two saturated CPU processes: 36 samples, largest gap 5.1 s, 36 settings writes with the file parseable throughout, power helper connected throughout, session file removed on deactivate. Peak app-tree RSS 486 MB, peak app CPU 8.6% |
-| Packaged binaries | **Built and launch-checked on 2026-11-08** — installer and portable read version 1.2.0 and are unsigned (`NotSigned`); the portable exe started with `packaged:true`, connected the 1.2.0 power helper and rendered the panel; `sha256sum -c` passes |
+| Packaged binaries | **Rebuilt on 2026-11-09 after the rename** — installer and portable read version 1.2.0 with `ProductName: Insomnia for Windows`, unsigned (`NotSigned`); `sha256sum -c` passes. The 2026-11-08 launch check (`packaged:true`, helper 1.2.0 connected, panel rendered) applies to the pre-rename build; the post-rename live launch re-check is pending until the running instance is closed |
 | Protective sleep | Implemented and unit-tested; never executed on real hardware |
 | Lid policy write/restore | Verified on real hardware; physical lid close untested |
 

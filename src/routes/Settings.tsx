@@ -140,7 +140,7 @@ export function Settings() {
     <div className="window-shell">
       <div className="surface settings-surface">
         <TitleBar
-          title="InsomniaZ"
+          title="Insomnia for Windows"
           subtitle={t('settingsTitle')}
           closeLabel={t('closeWindowAria')}
           minimizeLabel={t('minimizeWindowAria')}

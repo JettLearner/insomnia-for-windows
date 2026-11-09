@@ -18,6 +18,7 @@ export type LanguageSetting = 'system' | 'en-US' | 'zh-CN';
 export type EffectiveLocale = 'en-US' | 'zh-CN';
 
 export const APP_VERSION = '1.2.0';
+export const REPO_URL = 'https://github.com/JettLearner/insomnia-for-windows';
 export const DEFAULT_SOFT_STOP_PROMPT =
   'Please stop starting new work, finish the current step, save your state and report briefly. 请停止开始新任务，完成当前步骤、保存状态并简短汇报后结束。';
 export const PRESET_DURATIONS = [15 * 60_000, 30 * 60_000, 60 * 60_000, 2 * 60 * 60_000, 4 * 60 * 60_000, 8 * 60 * 60_000] as const;

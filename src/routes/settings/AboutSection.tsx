@@ -3,9 +3,7 @@ import { ExternalLink, Globe } from '../../components/Icons';
 import { Card, SectionHead } from '../../components/ui';
 import { useT } from '../../lib/i18n';
 import { useRuntime } from '../../lib/runtime';
-
-const APP_STORE_URL = 'https://apps.apple.com/app/id1447041581';
-const DEVELOPER_URL = 'https://pawandixit.com';
+import { REPO_URL } from '../../../shared/types';
 
 export function AboutSection() {
   const { state, bootstrap, run } = useRuntime();
@@ -23,7 +21,7 @@ export function AboutSection() {
         <div className="about-hero">
           <AppMark size={64} className="large" />
           <div className="about-hero-copy">
-            <h1>InsomniaZ</h1>
+            <h1>Insomnia for Windows</h1>
             <span className="about-version">
               {t('aboutVersion', { version: state.version })} · {t('windowsPort')}
             </span>
@@ -40,23 +38,13 @@ export function AboutSection() {
         </Card>
 
         <Card title={t('cardLinks')}>
-          <button type="button" className="link-row" onClick={() => open(APP_STORE_URL)}>
+          <button type="button" className="link-row" onClick={() => open(REPO_URL)}>
             <span className="link-icon">
               <Globe size={15} />
             </span>
             <span className="link-copy">
-              <span className="link-title">{t('aboutOriginal')}</span>
-              <span className="link-sub">apps.apple.com</span>
-            </span>
-            <ExternalLink size={14} className="link-arrow" />
-          </button>
-          <button type="button" className="link-row" onClick={() => open(DEVELOPER_URL)}>
-            <span className="link-icon">
-              <Globe size={15} />
-            </span>
-            <span className="link-copy">
-              <span className="link-title">{t('aboutDeveloper')}</span>
-              <span className="link-sub">pawandixit.com</span>
+              <span className="link-title">{t('aboutRepo')}</span>
+              <span className="link-sub">github.com/JettLearner/insomnia-for-windows</span>
             </span>
             <ExternalLink size={14} className="link-arrow" />
           </button>

@@ -1,6 +1,6 @@
 # Soft Stop
 
-> Applies to InsomniaZ for Windows 1.1.0 and later (current: 1.2.0).
+> Applies to Insomnia for Windows 1.1.0 and later (current: 1.2.0).
 > 中文版：[soft-stop.zh-CN.md](soft-stop.zh-CN.md)
 > Source: `shared/soft-stop.ts`, `shared/gui.ts`, `electron/core/{ai-detect,soft-stop-engine,soft-stop-sender,gui-agent}.ts`, `resources/helper/InsomniaZHelper.cs`
 > Settings UI: `src/routes/settings/SoftStopSection.tsx`

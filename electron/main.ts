@@ -24,6 +24,8 @@ const devUrl = process.env.VITE_DEV_SERVER_URL ?? null;
 const autopilotEnabled = isAutopilotEnabled(process.env);
 
 const appRoot = app.getAppPath();
+// The display name changed but the data directory must not move, or existing settings are orphaned.
+app.setPath('userData', join(app.getPath('appData'), 'InsomniaZ'));
 if (captureMode) app.setPath('userData', join(appRoot, 'docs', '.capture-profile'));
 if (smokeMode) app.setPath('userData', join(appRoot, 'docs', '.smoke-profile'));
 if (stressMode) app.setPath('userData', join(appRoot, 'docs', '.stress-profile'));
@@ -75,7 +77,7 @@ async function bootstrap(): Promise<void> {
   const userDataDir = app.getPath('userData');
   mkdirSync(userDataDir, { recursive: true });
   logger = new Logger(userDataDir);
-  logger.info('InsomniaZ starting', {
+  logger.info('Insomnia for Windows starting', {
     version: app.getVersion(),
     electron: process.versions.electron,
     packaged: app.isPackaged,
@@ -130,7 +132,7 @@ async function bootstrap(): Promise<void> {
     onGuardBusy: () => windows?.hideAutopilot(),
     notify: (title, body) => {
       if (Notification.isSupported()) {
-        new Notification({ title: 'InsomniaZ 定时投递', body: `${title} · ${body}`, silent: true }).show();
+        new Notification({ title: 'Insomnia for Windows 定时投递', body: `${title} · ${body}`, silent: true }).show();
       }
     },
   });
@@ -268,6 +270,7 @@ async function runCapture(): Promise<void> {
   for (const [name, title] of [
     ['settings-softstop-target-en', 'Delivery target'],
     ['settings-softstop-teaching-en', 'Teaching mode'],
+    ['settings-softstop-verify-en', 'Verification'],
   ] as const) {
     await windows.getWindow('settings')?.webContents.executeJavaScript(`(() => {
       const main = document.querySelector('.settings-main');
@@ -770,7 +773,7 @@ async function runSmoke(): Promise<void> {
       'Soft Stop',
       'Appearance',
       'Privacy',
-      'About InsomniaZ',
+      'About Insomnia for Windows',
     ];
     for (let index = 0; index < headingByIndex.length; index += 1) {
       await evalIn(settingsWin, `document.querySelectorAll('.nav-item')[${index}].click()`);
@@ -1000,7 +1003,7 @@ async function runSmoke(): Promise<void> {
       'Prevent apps from seeing you idle',
       'Open Control Panel',
       'Settings…',
-      'Quit InsomniaZ',
+      'Quit Insomnia for Windows',
     ];
     const missing = requiredLabels.filter((label) => !(trayInfo?.labels ?? []).some((item) => item.startsWith(label)));
     record(
@@ -1057,7 +1060,7 @@ if (captureMode || smokeMode || freshMode || stressMode) {
     app.on('second-instance', () => windows?.showPanel());
     app.whenReady().then(bootstrap).catch((error) => {
       logger?.error('startup failed', error);
-      dialog.showErrorBox('InsomniaZ', error instanceof Error ? error.message : String(error));
+      dialog.showErrorBox('Insomnia for Windows', error instanceof Error ? error.message : String(error));
       app.exit(1);
     });
   }

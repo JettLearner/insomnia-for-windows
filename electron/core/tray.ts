@@ -31,7 +31,7 @@ export class TrayController {
   private lastSignature = '';
   private lastActive: boolean | null = null;
   private lastState: RuntimeState | null = null;
-  private lastTooltip = 'InsomniaZ';
+  private lastTooltip = 'Insomnia for Windows';
   private lastMenuLabels: string[] = [];
 
   constructor(private readonly options: TrayControllerOptions) {}
@@ -39,7 +39,7 @@ export class TrayController {
   create(): void {
     const image = nativeImage.createFromPath(this.options.idleIcon);
     this.tray = new Tray(image.isEmpty() ? nativeImage.createEmpty() : image);
-    this.tray.setToolTip('InsomniaZ');
+    this.tray.setToolTip('Insomnia for Windows');
     this.options.windows.setTrayBounds(this.tray.getBounds());
     this.tray.on('click', () => {
       if (this.options.controller.getSettings().leftClickOpensPanel) {
@@ -271,7 +271,7 @@ export class TrayController {
 
   private showError(message: string): void {
     if (Notification.isSupported()) {
-      new Notification({ title: 'InsomniaZ', body: message, silent: true }).show();
+      new Notification({ title: 'Insomnia for Windows', body: message, silent: true }).show();
     } else {
       this.options.logger.warn('tray action failed', { message });
     }
